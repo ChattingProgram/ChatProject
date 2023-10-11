@@ -210,6 +210,40 @@ void db_messageSend() {
 }
 
 
+//회원가입
+void db_join() {
+    db_init();
+    // 데이터베이스 쿼리 실행
+    stmt = con->createStatement();
+    pstmt = con->prepareStatement("INSERT INTO users (user_id, name, pw, nickname, friend_name) values(?,?,?,?,?)"); // INSERT
+
+    string User_input;
+    cout << "아이디를 입력하세요. : ";
+    cin >> User_input;
+    pstmt->setString(1, User_input); //아이디
+
+    cout << "이름을 입력하세요. : ";
+    cin >> User_input;
+    pstmt->setString(2, User_input); // 이름
+
+    cout << "비밀번호을 입력하세요. : ";
+    cin >> User_input;
+    pstmt->setString(3, User_input); // 비밀번호
+
+    cout << "닉네임을 입력하세요. : ";
+    cin >> User_input;
+    pstmt->setString(4, User_input); // 날짜
+
+    pstmt->setString(5, " "); //친구목록
+
+    pstmt->execute(); // 이거 있어야지 디비에 저장됨.
+
+    cout << "Finished inserting table" << endl;
+
+
+}
+
+
 void db_selectQuery_ver2() {
     db_init();
     // 데이터베이스 쿼리 실행
