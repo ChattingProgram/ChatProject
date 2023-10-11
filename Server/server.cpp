@@ -25,6 +25,7 @@ sql::Connection* con;
 sql::Statement* stmt;
 sql::PreparedStatement* pstmt;
 sql::ResultSet* res; //결과값을 위해
+sql::ResultSet* res2; //결과값을 위해
 
 struct SOCKET_INFO { // 연결된 소켓 정보에 대한 틀 생성
     SOCKET sck;
@@ -38,6 +39,8 @@ void server_init(); // socket 초기화 함수. socket(), bind(), listen() 함수 실행�
 void add_client(); // 소켓에 연결을 시도하는 client를 추가(accept)하는 함수. client accept() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 void send_msg(const char* msg); // send() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 void recv_msg(int idx); // recv() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
+
+// 디비 구분
 void del_client(int idx); // 소켓에 연결되어 있는 client를 제거하는 함수. closesocket() 실행됨. 자세한 내용은 함수 구현부에서 확인.
 // MYSQL DB 관련 쿼리문 함수 구현부 //
 // 나중에 총 인원수 세기 등 함수 추가할 필요성 있음!! init 과 delete로 디비 정리 필수. //
@@ -46,6 +49,15 @@ void db_createQuery(); // db 크리에이트 쿼리 + 굳이 필요하지는 않다.
 void db_insertQuery(); // db 인서트 쿼리 + 세분화가 필요하다.
 void db_dropQuery(); // db 드롭 쿼리 + 굳이 필요하지는 않다.
 void db_updateQuery(); // db 업데이트 쿼리
+void db_selectQuery_ver2(); // db 셀렉트문
+
+//
+void db_roomUserNameQuery(); //채팅방에 있는 유저 이름 가져오기
+void db_messageSend(); // 메시지 전송 저장
+void db_join(); //회원가입
+void db_UserEdit(); // 회원 정보 수정부분
+
+
 void db_init() {
     try {
         driver = sql::mysql::get_mysql_driver_instance();
@@ -56,7 +68,7 @@ void db_init() {
         exit(1);
     }
     // 데이터베이스 선택
-    con->setSchema("condingon");
+    con->setSchema("test");
     // db 한글 저장을 위한 셋팅
     stmt = con->createStatement();
     stmt->execute("set names euckr");
@@ -96,17 +108,26 @@ void db_dropQuery() {
     delete con;
 }
 //쿼리문 수정 필요함
-void db_updateQuery() {
+
+void db_selectQuery_ver2() {
     db_init();
     // 데이터베이스 쿼리 실행
     stmt = con->createStatement();
-    stmt->execute("UPDATE TABLE IF EXISTS inventory"); // UPDATE
-    cout << "Finished update table" << endl;
+    res = stmt->executeQuery("SELECT * FROM inventory"); // from 뒤에는 실제로 mysql 에서 사용하는 테이블의 이름을 써야한다.
+
     delete stmt;
+
+    // 결과 출력
+    while (res->next()) {
+        cout << "Column1: " << res->getString("name") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        cout << "Column2: " << res->getString("quantity") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+    }
+
     // MySQL Connector/C++ 정리
     delete pstmt;
     delete con;
 }
+
 int main() {
     WSADATA wsa;
     // Winsock를 초기화하는 함수. MAKEWORD(2, 2)는 Winsock의 2.2 버전을 사용하겠다는 의미.
@@ -159,6 +180,8 @@ void server_init() {
     listen(server_sock.sck, SOMAXCONN); // 소켓을 대기 상태로 기다린다.
     server_sock.user = "server";
     cout << "Server On" << endl;
+
+    db_UserEdit();
 }
 void add_client() {
     SOCKADDR_IN addr = {};
