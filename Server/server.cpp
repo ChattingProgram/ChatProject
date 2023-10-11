@@ -244,6 +244,50 @@ void db_join() {
 }
 
 
+// 회원 정보 수정부분
+void db_UserEdit() {
+    db_init();
+    // 데이터베이스 쿼리 실행
+
+    // 데이터베이스에서 현재 비밀번호를 가져오는 쿼리
+    string selectQuery = "SELECT pw FROM users WHERE user_id = ?";
+    pstmt = con->prepareStatement(selectQuery);
+    pstmt->setString(1, "kms");
+    res = pstmt->executeQuery();
+
+    if (res->next()) {
+        string database_password = res->getString("pw");
+
+        string user_input_password;
+        cout << "비밀번호을 입력하세요. : ";
+        cin >> user_input_password;
+
+        // 사용자가 입력한 비밀번호와 데이터베이스의 비밀번호 비교
+        if (user_input_password == database_password) {
+            // 입력한 비밀번호와 데이터베이스 비밀번호가 일치하면 업데이트 수행
+            cout << "확인 되었습니다." << endl;
+            cout << "비밀번호을 입력하세요. : " << endl;
+            cin >> user_input_password;
+
+            string updateQuery = "UPDATE users SET pw = ? WHERE user_id = ?";
+            pstmt = con->prepareStatement(updateQuery);
+            pstmt->setString(1, user_input_password);
+            pstmt->setString(2, "kms");
+            pstmt->executeUpdate();
+            cout << "비밀번호가 업데이트되었습니다." << endl;
+        }
+        else {
+            cout << "입력한 비밀번호가 일치하지 않습니다." << endl;
+        }
+    }
+    else {
+        cout << "사용자를 찾을 수 없습니다." << endl;
+    }
+
+    cout << "Finished update table" << endl;
+
+}
+
 void db_selectQuery_ver2() {
     db_init();
     // 데이터베이스 쿼리 실행
