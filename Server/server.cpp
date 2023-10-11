@@ -46,6 +46,13 @@ void db_createQuery(); // db 크리에이트 쿼리 + 굳이 필요하지는 않다.
 void db_insertQuery(); // db 인서트 쿼리 + 세분화가 필요하다.
 void db_dropQuery(); // db 드롭 쿼리 + 굳이 필요하지는 않다.
 void db_updateQuery(); // db 업데이트 쿼리
+void db_selectQuery(); //db 셀랙트문
+void db_countuser(); // (1) 유저 수 몇 명인지? (서버 공지로 활용)
+void db_userlist(); // (3) 유저 목록 출력
+void db_findID(); // (7) 유저 정보 찾기
+void db_findPW();
+void db_callMessage();
+
 void db_init() {
     try {
         driver = sql::mysql::get_mysql_driver_instance();
@@ -56,7 +63,7 @@ void db_init() {
         exit(1);
     }
     // 데이터베이스 선택
-    con->setSchema("condingon");
+    con->setSchema("test");
     // db 한글 저장을 위한 셋팅
     stmt = con->createStatement();
     stmt->execute("set names euckr");
@@ -67,12 +74,14 @@ void db_createQuery() {
     db_init();
     // 데이터베이스 쿼리 실행
     stmt = con->createStatement();
-    stmt->execute("CREATE TABLE inventory (id serial PRIMARY KEY, name VARCHAR(50), quantity INTEGER);"); // CREATE
+    stmt->execute("CREATE TABLE users (user_id VARCHAR(10) primary key not null, name VARCHAR(10) not null, pw VARCHAR(10) not null, phonenumber VARCHAR(20) not null, nickname VARCHAR(10) not null, friend_name VARCHAR(10));"); // user 테이블
+    stmt->execute("CREATE TABLE chatroom (room_num int primary key auto_increment, user_id_1 VARCHAR(10) not null, user_id_2 VARCHAR(10) not null, messageDB_num int, foreign key(user_id_1) references users(user_id) on update cascade on delete cascade, foreign key(user_id_2) references users(user_id) on update cascade on delete cascade);"); // chatroom 테이블
+    stmt->execute("CREATE TABLE message_room (	number int primary key auto_increment, user_id VARCHAR(10) not null, content VARCHAR(255) not null, time date not null, chatroom_num int not null, foreign key(chatroom_num) references chatroom(room_num) on update cascade on delete cascade);"); // message_room 테이블
     cout << "Finished creating table" << endl;
     delete stmt;
 }
 //인서트의 세분화가 필요함.
-void db_insertQuery() {
+void db_insertQuery() { //일단 입력만 받아서 채워지는지 확인
     db_init();
     // 데이터베이스 쿼리 실행
     stmt = con->createStatement();
@@ -107,6 +116,142 @@ void db_updateQuery() {
     delete pstmt;
     delete con;
 }
+
+void db_selectQuery() {
+    db_init();
+
+    // SQL 쿼리 실행
+    stmt = con->createStatement();
+    res = stmt->executeQuery("SELECT * FROM message_room"); // from 뒤에는 실제로 mysql 에서 사용하는 테이블의 이름을 써야한다.
+    delete stmt;
+
+    cout << "\n";
+    cout << "SQL 쿼리 실행 (특정 PK 값에 해당하는 행 선택) \n";
+    // SQL 쿼리 실행 (특정 PK 값에 해당하는 행 선택)
+    string pkValue = "abcd"; // 실제 PK 값으로 대체
+    //string query = "SELECT * FROM inventory WHERE id = '" + pkValue + "'";
+    // 테이블 이름, PK 열 이름
+    stmt = con->createStatement();
+    res = stmt->executeQuery("SELECT * FROM message_room");//WHERE user_id = '" + pkValue + "'
+    // 결과 출력
+    while (res->next()) {
+        cout << "Column1: " << res->getString("number") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        cout << "Column2: " << res->getString("user_id") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        cout << "Column2: " << res->getString("content") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        cout << "Column2: " << res->getString("time") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        cout << "Column2: " << res->getString("chatroom_num") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+    }
+
+    // MySQL Connector/C++ 정리
+    delete pstmt;
+    delete con;
+}
+
+void db_countuser() {
+    db_init();
+    cout << "\n";
+    stmt = con->createStatement();
+    res = stmt->executeQuery("SELECT count(*) FROM users");
+
+    while (res->next()) {
+        cout << "[공지] 현재 가입된 유저 수 : " << res->getString("count(*)") << endl;
+    }
+    delete pstmt;
+    delete con;
+}
+
+void db_userlist() {
+    db_init();
+    cout << "\n";
+    stmt = con->createStatement();
+    res = stmt->executeQuery("SELECT * FROM users");
+
+    cout << "[현재 가입된 유저 목록]" << endl;
+    while (res->next()) {
+        cout << "ID : " << res->getString("user_id") << endl;
+    }
+}
+
+void db_findID() {
+    db_init();
+    string user_input_name, user_input_phonenumber;
+
+    cout << "ID를 찾을 이름을 입력하세요. : ";
+    cin >> user_input_name;
+    cout << "전화번호를 입력하세요. : ";
+    cin >> user_input_phonenumber;
+
+    stmt = con->createStatement();
+    res = stmt->executeQuery("SELECT user_id FROM users where name = '" + user_input_name + "' and phonenumber = '" + user_input_phonenumber + "'");
+
+    if (res->getString("user_id") != NULL) {
+        cout << "ID : " << res->getString("user_id") << endl;
+    }
+    else {
+        cout << "잘못된 정보를 입력하셨습니다." << endl;
+    }
+
+    //while (res->next()) {
+    //    if (res->getString("user_id") != NULL) {
+    //        cout << "ID : " << res->getString("user_id") << endl;
+    //    }
+    //    else if (res->getString("user_id") == NULL) {
+    //        cout << "잘못된 정보를 입력하셨습니다." << endl;
+    //    }
+    //}
+}
+//
+//    // 데이터베이스 쿼리 실행
+//    // 데이터베이스에서 현재 비밀번호를 가져오는 쿼리
+//    string selectQuery = "SELECT pw FROM users WHERE user_id = ?";
+//    pstmt = con->prepareStatement(selectQuery);
+//    pstmt->setString(1, "kms");
+//    res = pstmt->executeQuery();
+//    if (res->next()) {
+//        string database_password = res->getString("pw");
+//        string user_input_password;
+//        cout << "비밀번호을 입력하세요. : ";
+//        cin >> user_input_password;
+//        // 사용자가 입력한 비밀번호와 데이터베이스의 비밀번호 비교
+//        if (user_input_password == database_password) {
+//            // 입력한 비밀번호와 데이터베이스 비밀번호가 일치하면 업데이트 수행
+//            cout << "확인 되었습니다." << endl;
+//            cout << "비밀번호을 입력하세요. : " << endl;
+//            cin >> user_input_password;
+//            string updateQuery = "UPDATE users SET pw = ? WHERE user_id = ?";
+//            pstmt = con->prepareStatement(updateQuery);
+//            pstmt->setString(1, user_input_password);
+//            pstmt->setString(2, "kms");
+//            pstmt->executeUpdate();
+//            cout << "비밀번호가 업데이트되었습니다." << endl;
+//        }
+//        else {
+//            cout << "입력한 비밀번호가 일치하지 않습니다." << endl;
+//        }
+//    }
+//    else {
+//        cout << "사용자를 찾을 수 없습니다." << endl;
+//    }
+//    cout << "Finished update table" << endl;
+//}
+
+void db_callMessage() {
+    db_init();
+
+    string num;
+    cout << "불러올 채팅방 번호를 입력하세요. : "; // 채팅방 번호도 유저 정보에서 출력해줘야할 듯
+    cin >> num;
+    stmt = con->createStatement();
+    res = stmt->executeQuery("SELECT * FROM message_room where chatroom_num = '" + num + "'");
+
+    while (res->next()) {
+        cout << "[" << res->getString("user_id") << "]" << " ";
+        cout << "'" << res->getString("content") << "'" << " ";
+        cout << "(" << res->getString("time") << ")" << endl;
+    }
+
+}
+
 int main() {
     WSADATA wsa;
     // Winsock를 초기화하는 함수. MAKEWORD(2, 2)는 Winsock의 2.2 버전을 사용하겠다는 의미.
@@ -140,8 +285,11 @@ int main() {
     else {
         cout << "프로그램 종료. (Error code : " << code << ")";
     }
+
+
     WSACleanup();
     return 0;
+
 }
 void server_init() {
     server_sock.sck = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -159,6 +307,11 @@ void server_init() {
     listen(server_sock.sck, SOMAXCONN); // 소켓을 대기 상태로 기다린다.
     server_sock.user = "server";
     cout << "Server On" << endl;
+
+    db_countuser();
+    db_userlist();
+    cout << endl;
+    db_findID();
 }
 void add_client() {
     SOCKADDR_IN addr = {};
@@ -210,3 +363,4 @@ void del_client(int idx) {
     //sck_list.erase(sck_list.begin() + idx); // 배열에서 클라이언트를 삭제하게 될 경우 index가 달라지면서 런타임 오류 발생....ㅎ
     client_count--;
 }
+
