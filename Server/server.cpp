@@ -181,6 +181,35 @@ void db_roomUserNameQuery() {
 }
 
 
+// 메시지 전송 저장
+void db_messageSend() {
+    db_init();
+    // 데이터베이스 쿼리 실행
+    stmt = con->createStatement();
+    res = stmt->executeQuery("SELECT * FROM message_room");
+    int number = 0;
+    while (res->next()) {
+        number += 1;
+    }
+    cout << " num " << number << endl; //디비 번호 확인.
+
+    pstmt = con->prepareStatement("INSERT INTO message_room (number, user_id, content, time, chatroom_num) values(?,?,?,?,?)"); // INSERT
+
+    pstmt->setInt(1, number + 1); //메시지 번호
+    pstmt->setString(2, "abcd"); // 보낸 사람 아이디
+    pstmt->setString(3, "안녕하세요"); // 콘탠츠, 메세지 내용
+    pstmt->setString(4, "2023-10-11"); // 날짜
+    pstmt->setInt(5, 1); //챗 룸 넘버 
+    pstmt->execute(); // 이거 있어야지 디비에 저장됨.
+
+    cout << "메세지가 저장되었습니다." << endl;
+    delete stmt;
+    // MySQL Connector/C++ 정리
+    delete pstmt;
+    delete con;
+}
+
+
 void db_selectQuery_ver2() {
     db_init();
     // 데이터베이스 쿼리 실행
