@@ -109,6 +109,78 @@ void db_dropQuery() {
 }
 //쿼리문 수정 필요함
 
+void db_updateQuery() {
+    db_init();
+    // 데이터베이스 쿼리 실행
+    stmt = con->createStatement();
+    stmt->execute("UPDATE TABLE IF EXISTS inventory"); // UPDATE
+    cout << "Finished update table" << endl;
+    delete stmt;
+    // MySQL Connector/C++ 정리
+    delete pstmt;
+    delete con;
+}
+
+
+void db_updateQuery() {
+    db_init();
+    // 데이터베이스 쿼리 실행
+    stmt = con->createStatement();
+    stmt->execute("UPDATE TABLE IF EXISTS inventory"); // UPDATE
+    cout << "Finished update table" << endl;
+    delete stmt;
+    // MySQL Connector/C++ 정리
+    delete pstmt;
+    delete con;
+}
+
+//채팅방에 있는 유저 이름 가져오기
+void db_roomUserNameQuery() {
+    db_init();
+    // 데이터베이스 쿼리 실행
+    stmt = con->createStatement();
+    res = stmt->executeQuery("SELECT room_num, user_id_1, user_id_2 FROM chatroom"); // from 뒤에는 실제로 mysql 에서 사용하는 테이블의 이름을 써야한다.
+    delete stmt;
+
+    // 결과 출력
+    while (res->next()) {
+        cout << "현재 접속중인 방 번호 " << res->getString("room_num") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        cout << "유저 1의 ID : " << res->getString("user_id_1") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        cout << "유저 2의 ID : " << res->getString("user_id_2") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+    }
+
+    string User_Choice = "2";
+    stmt = con->createStatement();
+    res = stmt->executeQuery("SELECT * FROM chatroom WHERE room_num = '" + User_Choice + "'");
+
+    // 결과 출력
+    while (res->next()) {
+        cout << User_Choice << " 라는 원하는 방에 참가중인 참여자 : " << res->getString("user_id_1") << "님 과 " << res->getString("user_id_2") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+    }
+
+    // 유저가 참여중인 대화방만 불러오기
+    string login_User = "abcd";
+    stmt = con->createStatement();
+    res = stmt->executeQuery("SELECT room_num FROM chatroom WHERE user_id_1 = '" + login_User + "'");
+
+    cout << " 구분선 2" << endl;
+    // 결과 출력
+    while (res->next()) {
+        cout << login_User << " 가 참여중인 방 번호 : " << res->getString("room_num") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        string a = res->getString("room_num");
+
+        cout << "a가 저장되었나? = " << a << endl;
+        res2 = stmt->executeQuery("SELECT user_id_2 FROM chatroom WHERE room_num = '" + a + "'");
+        while (res2->next()) {
+            cout << a << " 에서 " << res2->getString("user_id_2") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        }
+
+    }
+
+
+}
+
+
 void db_selectQuery_ver2() {
     db_init();
     // 데이터베이스 쿼리 실행
