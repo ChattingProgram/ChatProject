@@ -1,10 +1,11 @@
-#pragma comment(lib, "ws2_32.lib") //ëª…ì‹œì ì¸ ë¼ì´ë¸ŒëŸ¬ë¦¬ì˜ ë§í¬. ìœˆì† ë¼ì´ë¸ŒëŸ¬ë¦¬ ì°¸ì¡°
+#pragma comment(lib, "ws2_32.lib") //¸í½ÃÀûÀÎ ¶óÀÌºê·¯¸®ÀÇ ¸µÅ©. À©¼Ó ¶óÀÌºê·¯¸® ÂüÁ¶
 #include <WinSock2.h>
 #include <string>
 #include <iostream>
 #include <thread>
 #include <vector>
-#include <mysql/jdbc.h> // C++í•˜ê³  MYSQLì„ ì—°ê²°í•˜ê¸° ìœ„í•´ ì„ ì–¸.
+#include <mysql/jdbc.h> // C++ÇÏ°í MYSQLÀ» ¿¬°áÇÏ±â À§ÇØ ¼±¾ğ.
+#include <sstream> // ¿ä±¸»çÇ× ºĞ¸®ÇØ¼­ ÀúÀåÇÏ±â À§ÇØ ÇÊ¿äÇÔ.
 
 #define MAX_SIZE 1024
 #define MAX_CLIENT 3
@@ -14,53 +15,53 @@ using std::cin;
 using std::endl;
 using std::string;
 
-// MY SQL ê´€ë ¨ ì •ë³´ë¥¼ ì €ì¥í•˜ëŠ” ì„ ì–¸í•˜ëŠ” ê³³ //
-const string server = "tcp://127.0.0.1:3306"; // ë°ì´í„°ë² ì´ìŠ¤ ì£¼ì†Œ
-const string username = "root"; // ë°ì´í„°ë² ì´ìŠ¤ ì‚¬ìš©ì
-const string password = "1234"; // ë°ì´í„°ë² ì´ìŠ¤ ì ‘ì† ë¹„ë°€ë²ˆí˜¸
+// MY SQL °ü·Ã Á¤º¸¸¦ ÀúÀåÇÏ´Â ¼±¾ğÇÏ´Â °÷ //
+const string server = "tcp://127.0.0.1:3306"; // µ¥ÀÌÅÍº£ÀÌ½º ÁÖ¼Ò
+const string username = "root"; // µ¥ÀÌÅÍº£ÀÌ½º »ç¿ëÀÚ
+const string password = "1234"; // µ¥ÀÌÅÍº£ÀÌ½º Á¢¼Ó ºñ¹Ğ¹øÈ£
 
-// MySQL Connector/C++ ì´ˆê¸°í™”
-sql::mysql::MySQL_Driver* driver; // ì¶”í›„ í•´ì œí•˜ì§€ ì•Šì•„ë„ Connector/C++ê°€ ìë™ìœ¼ë¡œ í•´ì œí•´ ì¤Œ
+// MySQL Connector/C++ ÃÊ±âÈ­
+sql::mysql::MySQL_Driver* driver; // ÃßÈÄ ÇØÁ¦ÇÏÁö ¾Ê¾Æµµ Connector/C++°¡ ÀÚµ¿À¸·Î ÇØÁ¦ÇØ ÁÜ
 sql::Connection* con;
 sql::Statement* stmt;
 sql::PreparedStatement* pstmt;
-sql::ResultSet* res; //ê²°ê³¼ê°’ì„ ìœ„í•´
-sql::ResultSet* res2; //ê²°ê³¼ê°’ì„ ìœ„í•´
+sql::ResultSet* res; //°á°ú°ªÀ» À§ÇØ
+sql::ResultSet* res2; //°á°ú°ªÀ» À§ÇØ
 
-struct SOCKET_INFO { // ì—°ê²°ëœ ì†Œì¼“ ì •ë³´ì— ëŒ€í•œ í‹€ ìƒì„±
+struct SOCKET_INFO { // ¿¬°áµÈ ¼ÒÄÏ Á¤º¸¿¡ ´ëÇÑ Æ² »ı¼º
     SOCKET sck;
     string user;
 };
 
-std::vector<SOCKET_INFO> sck_list; // ì—°ê²°ëœ í´ë¼ì´ì–¸íŠ¸ ì†Œì¼“ë“¤ì„ ì €ì¥í•  ë°°ì—´ ì„ ì–¸.
-SOCKET_INFO server_sock; // ì„œë²„ ì†Œì¼“ì— ëŒ€í•œ ì •ë³´ë¥¼ ì €ì¥í•  ë³€ìˆ˜ ì„ ì–¸.
-int client_count = 0; // í˜„ì¬ ì ‘ì†í•´ ìˆëŠ” í´ë¼ì´ì–¸íŠ¸ë¥¼ count í•  ë³€ìˆ˜ ì„ ì–¸.
-void server_init(); // socket ì´ˆê¸°í™” í•¨ìˆ˜. socket(), bind(), listen() í•¨ìˆ˜ ì‹¤í–‰ë¨. ìì„¸í•œ ë‚´ìš©ì€ í•¨ìˆ˜ êµ¬í˜„ë¶€ì—ì„œ í™•ì¸.
-void add_client(); // ì†Œì¼“ì— ì—°ê²°ì„ ì‹œë„í•˜ëŠ” clientë¥¼ ì¶”ê°€(accept)í•˜ëŠ” í•¨ìˆ˜. client accept() í•¨ìˆ˜ ì‹¤í–‰ë¨. ìì„¸í•œ ë‚´ìš©ì€ í•¨ìˆ˜ êµ¬í˜„ë¶€ì—ì„œ í™•ì¸.
-void send_msg(const char* msg); // send() í•¨ìˆ˜ ì‹¤í–‰ë¨. ìì„¸í•œ ë‚´ìš©ì€ í•¨ìˆ˜ êµ¬í˜„ë¶€ì—ì„œ í™•ì¸.
-void recv_msg(int idx); // recv() í•¨ìˆ˜ ì‹¤í–‰ë¨. ìì„¸í•œ ë‚´ìš©ì€ í•¨ìˆ˜ êµ¬í˜„ë¶€ì—ì„œ í™•ì¸.
+std::vector<SOCKET_INFO> sck_list; // ¿¬°áµÈ Å¬¶óÀÌ¾ğÆ® ¼ÒÄÏµéÀ» ÀúÀåÇÒ ¹è¿­ ¼±¾ğ.
+SOCKET_INFO server_sock; // ¼­¹ö ¼ÒÄÏ¿¡ ´ëÇÑ Á¤º¸¸¦ ÀúÀåÇÒ º¯¼ö ¼±¾ğ.
+int client_count = 0; // ÇöÀç Á¢¼ÓÇØ ÀÖ´Â Å¬¶óÀÌ¾ğÆ®¸¦ count ÇÒ º¯¼ö ¼±¾ğ.
+void server_init(); // socket ÃÊ±âÈ­ ÇÔ¼ö. socket(), bind(), listen() ÇÔ¼ö ½ÇÇàµÊ. ÀÚ¼¼ÇÑ ³»¿ëÀº ÇÔ¼ö ±¸ÇöºÎ¿¡¼­ È®ÀÎ.
+void add_client(); // ¼ÒÄÏ¿¡ ¿¬°áÀ» ½ÃµµÇÏ´Â client¸¦ Ãß°¡(accept)ÇÏ´Â ÇÔ¼ö. client accept() ÇÔ¼ö ½ÇÇàµÊ. ÀÚ¼¼ÇÑ ³»¿ëÀº ÇÔ¼ö ±¸ÇöºÎ¿¡¼­ È®ÀÎ.
+void send_msg(const char* msg); // send() ÇÔ¼ö ½ÇÇàµÊ. ÀÚ¼¼ÇÑ ³»¿ëÀº ÇÔ¼ö ±¸ÇöºÎ¿¡¼­ È®ÀÎ.
+void recv_msg(int idx); // recv() ÇÔ¼ö ½ÇÇàµÊ. ÀÚ¼¼ÇÑ ³»¿ëÀº ÇÔ¼ö ±¸ÇöºÎ¿¡¼­ È®ÀÎ.
 
-// ë””ë¹„ êµ¬ë¶„
-void del_client(int idx); // ì†Œì¼“ì— ì—°ê²°ë˜ì–´ ìˆëŠ” clientë¥¼ ì œê±°í•˜ëŠ” í•¨ìˆ˜. closesocket() ì‹¤í–‰ë¨. ìì„¸í•œ ë‚´ìš©ì€ í•¨ìˆ˜ êµ¬í˜„ë¶€ì—ì„œ í™•ì¸.
-// MYSQL DB ê´€ë ¨ ì¿¼ë¦¬ë¬¸ í•¨ìˆ˜ êµ¬í˜„ë¶€ //
-// ë‚˜ì¤‘ì— ì´ ì¸ì›ìˆ˜ ì„¸ê¸° ë“± í•¨ìˆ˜ ì¶”ê°€í•  í•„ìš”ì„± ìˆìŒ!! init ê³¼ deleteë¡œ ë””ë¹„ ì •ë¦¬ í•„ìˆ˜. //
-void db_init(); // db ë² ì´ìŠ¤ ì„ íƒ ë° í•œê¸€ ì„¸íŒ… ê´€ë ¨ ë¶€ë¶„ êµ¬í˜„
-void db_createQuery(); // db í¬ë¦¬ì—ì´íŠ¸ ì¿¼ë¦¬ + êµ³ì´ í•„ìš”í•˜ì§€ëŠ” ì•Šë‹¤.
-void db_insertQuery(); // db ì¸ì„œíŠ¸ ì¿¼ë¦¬ + ì„¸ë¶„í™”ê°€ í•„ìš”í•˜ë‹¤.
-void db_dropQuery(); // db ë“œë¡­ ì¿¼ë¦¬ + êµ³ì´ í•„ìš”í•˜ì§€ëŠ” ì•Šë‹¤.
-void db_updateQuery(); // db ì—…ë°ì´íŠ¸ ì¿¼ë¦¬
+// µğºñ ±¸ºĞ
+void del_client(int idx); // ¼ÒÄÏ¿¡ ¿¬°áµÇ¾î ÀÖ´Â client¸¦ Á¦°ÅÇÏ´Â ÇÔ¼ö. closesocket() ½ÇÇàµÊ. ÀÚ¼¼ÇÑ ³»¿ëÀº ÇÔ¼ö ±¸ÇöºÎ¿¡¼­ È®ÀÎ.
+// MYSQL DB °ü·Ã Äõ¸®¹® ÇÔ¼ö ±¸ÇöºÎ //
+// ³ªÁß¿¡ ÃÑ ÀÎ¿ø¼ö ¼¼±â µî ÇÔ¼ö Ãß°¡ÇÒ ÇÊ¿ä¼º ÀÖÀ½!! init °ú delete·Î µğºñ Á¤¸® ÇÊ¼ö. //
+void db_init(); // db º£ÀÌ½º ¼±ÅÃ ¹× ÇÑ±Û ¼¼ÆÃ °ü·Ã ºÎºĞ ±¸Çö
+void db_createQuery(); // db Å©¸®¿¡ÀÌÆ® Äõ¸® + ±»ÀÌ ÇÊ¿äÇÏÁö´Â ¾Ê´Ù.
+void db_insertQuery(); // db ÀÎ¼­Æ® Äõ¸® + ¼¼ºĞÈ­°¡ ÇÊ¿äÇÏ´Ù.
+void db_dropQuery(); // db µå·Ó Äõ¸® + ±»ÀÌ ÇÊ¿äÇÏÁö´Â ¾Ê´Ù.
+void db_updateQuery(); // db ¾÷µ¥ÀÌÆ® Äõ¸®
 
-void db_selectQuery_ver2(); // db ì…€ë ‰íŠ¸ë¬¸
-void db_roomUserNameQuery(); //ì±„íŒ…ë°©ì— ìˆëŠ” ìœ ì € ì´ë¦„ ê°€ì ¸ì˜¤ê¸°
-void db_messageSend(); // ë©”ì‹œì§€ ì „ì†¡ ì €ì¥
-void db_join(); //íšŒì›ê°€ì…
-void db_UserEdit(); // íšŒì› ì •ë³´ ìˆ˜ì •ë¶€ë¶„
-void db_selectQuery(); //db ì…€ë™íŠ¸ë¬¸
+void db_selectQuery_ver2(); // db ¼¿·ºÆ®¹®
+void db_roomUserNameQuery(); //Ã¤ÆÃ¹æ¿¡ ÀÖ´Â À¯Àú ÀÌ¸§ °¡Á®¿À±â
+void db_messageSend(); // ¸Ş½ÃÁö Àü¼Û ÀúÀå
+void db_join(); //È¸¿ø°¡ÀÔ
+void db_UserEdit(); // È¸¿ø Á¤º¸ ¼öÁ¤ºÎºĞ
+void db_selectQuery(); //db ¼¿·¢Æ®¹®
 void db_login();
-void db_countuser(); // (1) ìœ ì € ìˆ˜ ëª‡ ëª…ì¸ì§€? (ì„œë²„ ê³µì§€ë¡œ í™œìš©)
-void db_userlist(); // (3) ìœ ì € ëª©ë¡ ì¶œë ¥
-void db_findID(); // (7) ìœ ì € ì •ë³´ ì°¾ê¸°
-void db_callMessage(); // ê¸°ì¡´ ì±„íŒ…ë°© ë¶ˆëŸ¬ì˜¤ê¸°
+void db_countuser(); // (1) À¯Àú ¼ö ¸î ¸íÀÎÁö? (¼­¹ö °øÁö·Î È°¿ë)
+void db_userlist(); // (3) À¯Àú ¸ñ·Ï Ãâ·Â
+void db_findID(); // (7) À¯Àú Á¤º¸ Ã£±â
+void db_callMessage(); // ±âÁ¸ Ã¤ÆÃ¹æ ºÒ·¯¿À±â
 
 
 void db_init() {
@@ -72,103 +73,103 @@ void db_init() {
         cout << "Could not connect to server. Error message: " << e.what() << endl;
         exit(1);
     }
-    // ë°ì´í„°ë² ì´ìŠ¤ ì„ íƒ
+    // µ¥ÀÌÅÍº£ÀÌ½º ¼±ÅÃ
     con->setSchema("test");
-    // db í•œê¸€ ì €ì¥ì„ ìœ„í•œ ì…‹íŒ…
+    // db ÇÑ±Û ÀúÀåÀ» À§ÇÑ ¼ÂÆÃ
     stmt = con->createStatement();
     stmt->execute("set names euckr");
     if (stmt) { delete stmt; stmt = nullptr; }
 }
-//êµ³ì´ í•„ìš”í•˜ì§€ ì•ŠìŒ.
+//±»ÀÌ ÇÊ¿äÇÏÁö ¾ÊÀ½.
 void db_createQuery() {
     db_init();
-    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
+    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
     stmt = con->createStatement();
-    stmt->execute("CREATE TABLE users (user_id VARCHAR(10) primary key not null, name VARCHAR(10) not null, pw VARCHAR(10) not null, phonenumber VARCHAR(20) not null, nickname VARCHAR(10) not null, friend_name VARCHAR(10));"); // user í…Œì´ë¸”
-    stmt->execute("CREATE TABLE chatroom (room_num int primary key auto_increment, user_id_1 VARCHAR(10) not null, user_id_2 VARCHAR(10) not null, messageDB_num int, foreign key(user_id_1) references users(user_id) on update cascade on delete cascade, foreign key(user_id_2) references users(user_id) on update cascade on delete cascade);"); // chatroom í…Œì´ë¸”
-    stmt->execute("CREATE TABLE message_room (	number int primary key auto_increment, user_id VARCHAR(10) not null, content VARCHAR(255) not null, time date not null, chatroom_num int not null, foreign key(chatroom_num) references chatroom(room_num) on update cascade on delete cascade);"); // message_room í…Œì´ë¸”
+    stmt->execute("CREATE TABLE users (user_id VARCHAR(10) primary key not null, name VARCHAR(10) not null, pw VARCHAR(10) not null, phonenumber VARCHAR(20) not null, nickname VARCHAR(10) not null, friend_name VARCHAR(10));"); // user Å×ÀÌºí
+    stmt->execute("CREATE TABLE chatroom (room_num int primary key auto_increment, user_id_1 VARCHAR(10) not null, user_id_2 VARCHAR(10) not null, messageDB_num int, foreign key(user_id_1) references users(user_id) on update cascade on delete cascade, foreign key(user_id_2) references users(user_id) on update cascade on delete cascade);"); // chatroom Å×ÀÌºí
+    stmt->execute("CREATE TABLE message_room (	number int primary key auto_increment, user_id VARCHAR(10) not null, content VARCHAR(255) not null, time date not null, chatroom_num int not null, foreign key(chatroom_num) references chatroom(room_num) on update cascade on delete cascade);"); // message_room Å×ÀÌºí
     cout << "Finished creating table" << endl;
     delete stmt;
 }
-//ì¸ì„œíŠ¸ì˜ ì„¸ë¶„í™”ê°€ í•„ìš”í•¨.
-void db_insertQuery() { //ì¼ë‹¨ ì…ë ¥ë§Œ ë°›ì•„ì„œ ì±„ì›Œì§€ëŠ”ì§€ í™•ì¸
+//ÀÎ¼­Æ®ÀÇ ¼¼ºĞÈ­°¡ ÇÊ¿äÇÔ.
+void db_insertQuery() { //ÀÏ´Ü ÀÔ·Â¸¸ ¹Ş¾Æ¼­ Ã¤¿öÁö´ÂÁö È®ÀÎ
     db_init();
-    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
+    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
     stmt = con->createStatement();
     pstmt = con->prepareStatement("INSERT INTO inventory(name, quantity) VALUES(?,?)"); // INSERT
     cout << "Finished inserting table" << endl;
     delete stmt;
-    // MySQL Connector/C++ ì •ë¦¬
+    // MySQL Connector/C++ Á¤¸®
     delete pstmt;
     delete con;
 }
-//êµ³ì´ í•„ìš”í•˜ì§€ ì•Šì„ ê²ƒ ê°™ìŒ.
+//±»ÀÌ ÇÊ¿äÇÏÁö ¾ÊÀ» °Í °°À½.
 void db_dropQuery() {
     db_init();
-    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
+    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
     stmt = con->createStatement();
     stmt->execute("DROP TABLE IF EXISTS inventory"); // DROP
     cout << "Finished dropping table (if existed)" << endl;
     delete stmt;
-    // MySQL Connector/C++ ì •ë¦¬
+    // MySQL Connector/C++ Á¤¸®
     delete pstmt;
     delete con;
 }
-//ì¿¼ë¦¬ë¬¸ ìˆ˜ì • í•„ìš”í•¨
+//Äõ¸®¹® ¼öÁ¤ ÇÊ¿äÇÔ
 
 
 void db_updateQuery() {
     db_init();
-    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
+    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
     stmt = con->createStatement();
     stmt->execute("UPDATE TABLE IF EXISTS inventory"); // UPDATE
     cout << "Finished update table" << endl;
     delete stmt;
-    // MySQL Connector/C++ ì •ë¦¬
+    // MySQL Connector/C++ Á¤¸®
     delete pstmt;
     delete con;
 }
 
 
-//ì±„íŒ…ë°©ì— ìˆëŠ” ìœ ì € ì´ë¦„ ê°€ì ¸ì˜¤ê¸°
+//Ã¤ÆÃ¹æ¿¡ ÀÖ´Â À¯Àú ÀÌ¸§ °¡Á®¿À±â
 void db_roomUserNameQuery() {
     db_init();
-    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
+    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
     stmt = con->createStatement();
-    res = stmt->executeQuery("SELECT room_num, user_id_1, user_id_2 FROM chatroom"); // from ë’¤ì—ëŠ” ì‹¤ì œë¡œ mysql ì—ì„œ ì‚¬ìš©í•˜ëŠ” í…Œì´ë¸”ì˜ ì´ë¦„ì„ ì¨ì•¼í•œë‹¤.
+    res = stmt->executeQuery("SELECT room_num, user_id_1, user_id_2 FROM chatroom"); // from µÚ¿¡´Â ½ÇÁ¦·Î mysql ¿¡¼­ »ç¿ëÇÏ´Â Å×ÀÌºíÀÇ ÀÌ¸§À» ½á¾ßÇÑ´Ù.
     delete stmt;
 
-    // ê²°ê³¼ ì¶œë ¥
+    // °á°ú Ãâ·Â
     while (res->next()) {
-        cout << "í˜„ì¬ ì ‘ì†ì¤‘ì¸ ë°© ë²ˆí˜¸ " << res->getString("room_num") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
-        cout << "ìœ ì € 1ì˜ ID : " << res->getString("user_id_1") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
-        cout << "ìœ ì € 2ì˜ ID : " << res->getString("user_id_2") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+        cout << "ÇöÀç Á¢¼ÓÁßÀÎ ¹æ ¹øÈ£ " << res->getString("room_num") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
+        cout << "À¯Àú 1ÀÇ ID : " << res->getString("user_id_1") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
+        cout << "À¯Àú 2ÀÇ ID : " << res->getString("user_id_2") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
     }
 
     string User_Choice = "2";
     stmt = con->createStatement();
     res = stmt->executeQuery("SELECT * FROM chatroom WHERE room_num = '" + User_Choice + "'");
 
-    // ê²°ê³¼ ì¶œë ¥
+    // °á°ú Ãâ·Â
     while (res->next()) {
-        cout << User_Choice << " ë¼ëŠ” ì›í•˜ëŠ” ë°©ì— ì°¸ê°€ì¤‘ì¸ ì°¸ì—¬ì : " << res->getString("user_id_1") << "ë‹˜ ê³¼ " << res->getString("user_id_2") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+        cout << User_Choice << " ¶ó´Â ¿øÇÏ´Â ¹æ¿¡ Âü°¡ÁßÀÎ Âü¿©ÀÚ : " << res->getString("user_id_1") << "´Ô °ú " << res->getString("user_id_2") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
     }
 
-    // ìœ ì €ê°€ ì°¸ì—¬ì¤‘ì¸ ëŒ€í™”ë°©ë§Œ ë¶ˆëŸ¬ì˜¤ê¸°
+    // À¯Àú°¡ Âü¿©ÁßÀÎ ´ëÈ­¹æ¸¸ ºÒ·¯¿À±â
     string login_User = "abcd";
     stmt = con->createStatement();
     res = stmt->executeQuery("SELECT room_num FROM chatroom WHERE user_id_1 = '" + login_User + "'");
 
-    cout << " êµ¬ë¶„ì„  2" << endl;
-    // ê²°ê³¼ ì¶œë ¥
+    cout << " ±¸ºĞ¼± 2" << endl;
+    // °á°ú Ãâ·Â
     while (res->next()) {
-        cout << login_User << " ê°€ ì°¸ì—¬ì¤‘ì¸ ë°© ë²ˆí˜¸ : " << res->getString("room_num") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+        cout << login_User << " °¡ Âü¿©ÁßÀÎ ¹æ ¹øÈ£ : " << res->getString("room_num") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
         string a = res->getString("room_num");
 
-        cout << "aê°€ ì €ì¥ë˜ì—ˆë‚˜? = " << a << endl;
+        cout << "a°¡ ÀúÀåµÇ¾ú³ª? = " << a << endl;
         res2 = stmt->executeQuery("SELECT user_id_2 FROM chatroom WHERE room_num = '" + a + "'");
         while (res2->next()) {
-            cout << a << " ì—ì„œ " << res2->getString("user_id_2") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+            cout << a << " ¿¡¼­ " << res2->getString("user_id_2") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
         }
 
     }
@@ -177,58 +178,58 @@ void db_roomUserNameQuery() {
 }
 
 
-// ë©”ì‹œì§€ ì „ì†¡ ì €ì¥
+// ¸Ş½ÃÁö Àü¼Û ÀúÀå
 void db_messageSend() {
     db_init();
-    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
+    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
     stmt = con->createStatement();
     res = stmt->executeQuery("SELECT * FROM message_room");
     int number = 0;
     while (res->next()) {
         number += 1;
     }
-    cout << " num " << number << endl; //ë””ë¹„ ë²ˆí˜¸ í™•ì¸.
+    cout << " num " << number << endl; //µğºñ ¹øÈ£ È®ÀÎ.
 
     pstmt = con->prepareStatement("INSERT INTO message_room (number, user_id, content, time, chatroom_num) values(?,?,?,?,?)"); // INSERT
 
-    pstmt->setInt(1, number + 1); //ë©”ì‹œì§€ ë²ˆí˜¸
-    pstmt->setString(2, "abcd"); // ë³´ë‚¸ ì‚¬ëŒ ì•„ì´ë””
-    pstmt->setString(3, "hihihihi"); // ë³´ë‚¸ ì‚¬ëŒ ì•„ì´ë””
-    pstmt->setString(4, "2023-10-11"); // ë‚ ì§œ
-    pstmt->setInt(5, 1); //ì±— ë£¸ ë„˜ë²„ 
-    pstmt->execute(); // ì´ê±° ìˆì–´ì•¼ì§€ ë””ë¹„ì— ì €ì¥ë¨.
+    pstmt->setInt(1, number + 1); //¸Ş½ÃÁö ¹øÈ£
+    pstmt->setString(2, "abcd"); // º¸³½ »ç¶÷ ¾ÆÀÌµğ
+    pstmt->setString(3, "hihihihi"); // º¸³½ »ç¶÷ ¾ÆÀÌµğ
+    pstmt->setString(4, "2023-10-11"); // ³¯Â¥
+    pstmt->setInt(5, 1); //Ãª ·ë ³Ñ¹ö 
+    pstmt->execute(); // ÀÌ°Å ÀÖ¾î¾ßÁö µğºñ¿¡ ÀúÀåµÊ.
 
-    cout << "ë©”ì„¸ì§€ê°€ ì €ì¥ë˜ì—ˆìŠµë‹ˆë‹¤." << endl;
+    cout << "¸Ş¼¼Áö°¡ ÀúÀåµÇ¾ú½À´Ï´Ù." << endl;
     delete stmt;
-    // MySQL Connector/C++ ì •ë¦¬
+    // MySQL Connector/C++ Á¤¸®
 }
 
 void db_selectQuery() {
     db_init();
 
-    // SQL ì¿¼ë¦¬ ì‹¤í–‰
+    // SQL Äõ¸® ½ÇÇà
     stmt = con->createStatement();
-    res = stmt->executeQuery("SELECT * FROM message_room"); // from ë’¤ì—ëŠ” ì‹¤ì œë¡œ mysql ì—ì„œ ì‚¬ìš©í•˜ëŠ” í…Œì´ë¸”ì˜ ì´ë¦„ì„ ì¨ì•¼í•œë‹¤.
+    res = stmt->executeQuery("SELECT * FROM message_room"); // from µÚ¿¡´Â ½ÇÁ¦·Î mysql ¿¡¼­ »ç¿ëÇÏ´Â Å×ÀÌºíÀÇ ÀÌ¸§À» ½á¾ßÇÑ´Ù.
     delete stmt;
 
     cout << "\n";
-    cout << "SQL ì¿¼ë¦¬ ì‹¤í–‰ (íŠ¹ì • PK ê°’ì— í•´ë‹¹í•˜ëŠ” í–‰ ì„ íƒ) \n";
-    // SQL ì¿¼ë¦¬ ì‹¤í–‰ (íŠ¹ì • PK ê°’ì— í•´ë‹¹í•˜ëŠ” í–‰ ì„ íƒ)
-    string pkValue = "abcd"; // ì‹¤ì œ PK ê°’ìœ¼ë¡œ ëŒ€ì²´
+    cout << "SQL Äõ¸® ½ÇÇà (Æ¯Á¤ PK °ª¿¡ ÇØ´çÇÏ´Â Çà ¼±ÅÃ) \n";
+    // SQL Äõ¸® ½ÇÇà (Æ¯Á¤ PK °ª¿¡ ÇØ´çÇÏ´Â Çà ¼±ÅÃ)
+    string pkValue = "abcd"; // ½ÇÁ¦ PK °ªÀ¸·Î ´ëÃ¼
     //string query = "SELECT * FROM inventory WHERE id = '" + pkValue + "'";
-    // í…Œì´ë¸” ì´ë¦„, PK ì—´ ì´ë¦„
+    // Å×ÀÌºí ÀÌ¸§, PK ¿­ ÀÌ¸§
     stmt = con->createStatement();
     res = stmt->executeQuery("SELECT * FROM message_room");//WHERE user_id = '" + pkValue + "'
-    // ê²°ê³¼ ì¶œë ¥
+    // °á°ú Ãâ·Â
     while (res->next()) {
-        cout << "Column1: " << res->getString("number") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
-        cout << "Column2: " << res->getString("user_id") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
-        cout << "Column2: " << res->getString("content") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
-        cout << "Column2: " << res->getString("time") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
-        cout << "Column2: " << res->getString("chatroom_num") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+        cout << "Column1: " << res->getString("number") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
+        cout << "Column2: " << res->getString("user_id") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
+        cout << "Column2: " << res->getString("content") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
+        cout << "Column2: " << res->getString("time") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
+        cout << "Column2: " << res->getString("chatroom_num") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
     }
 
-    // MySQL Connector/C++ ì •ë¦¬
+    // MySQL Connector/C++ Á¤¸®
     delete pstmt;
     delete con;
 }
@@ -238,9 +239,9 @@ void db_login() {
 
     string user_id, pw;
 
-    cout << "IDë¥¼ ì…ë ¥í•˜ì„¸ìš”. : ";
+    cout << "ID¸¦ ÀÔ·ÂÇÏ¼¼¿ä. : ";
     cin >> user_id;
-    cout << "ë¹„ë°€ë²ˆí˜¸ë¥¼ ì…ë ¥í•˜ì„¸ìš”. : ";
+    cout << "ºñ¹Ğ¹øÈ£¸¦ ÀÔ·ÂÇÏ¼¼¿ä. : ";
     cin >> pw;
 
     pstmt = con->prepareStatement("SELECT user_id, pw FROM users WHERE user_id = ?");
@@ -252,10 +253,10 @@ void db_login() {
         string db_pw = res->getString(2);
 
         if (db_id == user_id && db_pw == pw) {
-            cout << " â–¶ ë¡œê·¸ì¸ ì„±ê³µ! " << endl;
+            cout << " ¢º ·Î±×ÀÎ ¼º°ø! " << endl;
         }
         else {
-            cout << " â–¶ ë¡œê·¸ì¸ ì‹¤íŒ¨!  " << endl;
+            cout << " ¢º ·Î±×ÀÎ ½ÇÆĞ!  " << endl;
         }
     }
 }
@@ -267,40 +268,40 @@ void db_countuser() {
     res = stmt->executeQuery("SELECT count(*) FROM users");
 
     while (res->next()) {
-        cout << "[ê³µì§€] í˜„ì¬ ê°€ì…ëœ ìœ ì € ìˆ˜ : " << res->getString("count(*)") << endl;
+        cout << "[°øÁö] ÇöÀç °¡ÀÔµÈ À¯Àú ¼ö : " << res->getString("count(*)") << endl;
     }
 
     delete pstmt;
     delete con;
 }
 
-//íšŒì›ê°€ì…
+//È¸¿ø°¡ÀÔ
 void db_join() {
     db_init();
-    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
+    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
     stmt = con->createStatement();
     pstmt = con->prepareStatement("INSERT INTO users (user_id, name, pw, nickname, friend_name) values(?,?,?,?,?)"); // INSERT
 
     string User_input;
-    cout << "ì•„ì´ë””ë¥¼ ì…ë ¥í•˜ì„¸ìš”. : ";
+    cout << "¾ÆÀÌµğ¸¦ ÀÔ·ÂÇÏ¼¼¿ä. : ";
     cin >> User_input;
-    pstmt->setString(1, User_input); //ì•„ì´ë””
+    pstmt->setString(1, User_input); //¾ÆÀÌµğ
 
-    cout << "ì´ë¦„ì„ ì…ë ¥í•˜ì„¸ìš”. : ";
+    cout << "ÀÌ¸§À» ÀÔ·ÂÇÏ¼¼¿ä. : ";
     cin >> User_input;
-    pstmt->setString(2, User_input); // ì´ë¦„
+    pstmt->setString(2, User_input); // ÀÌ¸§
 
-    cout << "ë¹„ë°€ë²ˆí˜¸ì„ ì…ë ¥í•˜ì„¸ìš”. : ";
+    cout << "ºñ¹Ğ¹øÈ£À» ÀÔ·ÂÇÏ¼¼¿ä. : ";
     cin >> User_input;
-    pstmt->setString(3, User_input); // ë¹„ë°€ë²ˆí˜¸
+    pstmt->setString(3, User_input); // ºñ¹Ğ¹øÈ£
 
-    cout << "ë‹‰ë„¤ì„ì„ ì…ë ¥í•˜ì„¸ìš”. : ";
+    cout << "´Ğ³×ÀÓÀ» ÀÔ·ÂÇÏ¼¼¿ä. : ";
     cin >> User_input;
-    pstmt->setString(4, User_input); // ë‚ ì§œ
+    pstmt->setString(4, User_input); // ³¯Â¥
 
-    pstmt->setString(5, " "); //ì¹œêµ¬ëª©ë¡
+    pstmt->setString(5, " "); //Ä£±¸¸ñ·Ï
 
-    pstmt->execute(); // ì´ê±° ìˆì–´ì•¼ì§€ ë””ë¹„ì— ì €ì¥ë¨.
+    pstmt->execute(); // ÀÌ°Å ÀÖ¾î¾ßÁö µğºñ¿¡ ÀúÀåµÊ.
 
     cout << "Finished inserting table" << endl;
 
@@ -308,12 +309,12 @@ void db_join() {
 }
 
 
-// íšŒì› ì •ë³´ ìˆ˜ì •ë¶€ë¶„
+// È¸¿ø Á¤º¸ ¼öÁ¤ºÎºĞ
 void db_UserEdit() {
     db_init();
-    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
+    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
 
-    // ë°ì´í„°ë² ì´ìŠ¤ì—ì„œ í˜„ì¬ ë¹„ë°€ë²ˆí˜¸ë¥¼ ê°€ì ¸ì˜¤ëŠ” ì¿¼ë¦¬
+    // µ¥ÀÌÅÍº£ÀÌ½º¿¡¼­ ÇöÀç ºñ¹Ğ¹øÈ£¸¦ °¡Á®¿À´Â Äõ¸®
     string selectQuery = "SELECT pw FROM users WHERE user_id = ?";
     pstmt = con->prepareStatement(selectQuery);
     pstmt->setString(1, "abcd");
@@ -323,14 +324,14 @@ void db_UserEdit() {
         string database_password = res->getString("pw");
 
         string user_input_password;
-        cout << "ë¹„ë°€ë²ˆí˜¸ì„ ì…ë ¥í•˜ì„¸ìš”. : ";
+        cout << "ºñ¹Ğ¹øÈ£À» ÀÔ·ÂÇÏ¼¼¿ä. : ";
         cin >> user_input_password;
 
-        // ì‚¬ìš©ìê°€ ì…ë ¥í•œ ë¹„ë°€ë²ˆí˜¸ì™€ ë°ì´í„°ë² ì´ìŠ¤ì˜ ë¹„ë°€ë²ˆí˜¸ ë¹„êµ
+        // »ç¿ëÀÚ°¡ ÀÔ·ÂÇÑ ºñ¹Ğ¹øÈ£¿Í µ¥ÀÌÅÍº£ÀÌ½ºÀÇ ºñ¹Ğ¹øÈ£ ºñ±³
         if (user_input_password == database_password) {
-            // ì…ë ¥í•œ ë¹„ë°€ë²ˆí˜¸ì™€ ë°ì´í„°ë² ì´ìŠ¤ ë¹„ë°€ë²ˆí˜¸ê°€ ì¼ì¹˜í•˜ë©´ ì—…ë°ì´íŠ¸ ìˆ˜í–‰
-            cout << "í™•ì¸ ë˜ì—ˆìŠµë‹ˆë‹¤." << endl;
-            cout << "ë¹„ë°€ë²ˆí˜¸ì„ ì…ë ¥í•˜ì„¸ìš”. : " << endl;
+            // ÀÔ·ÂÇÑ ºñ¹Ğ¹øÈ£¿Í µ¥ÀÌÅÍº£ÀÌ½º ºñ¹Ğ¹øÈ£°¡ ÀÏÄ¡ÇÏ¸é ¾÷µ¥ÀÌÆ® ¼öÇà
+            cout << "È®ÀÎ µÇ¾ú½À´Ï´Ù." << endl;
+            cout << "ºñ¹Ğ¹øÈ£À» ÀÔ·ÂÇÏ¼¼¿ä. : " << endl;
             cin >> user_input_password;
 
             string updateQuery = "UPDATE users SET pw = ? WHERE user_id = ?";
@@ -338,14 +339,14 @@ void db_UserEdit() {
             pstmt->setString(1, user_input_password);
             pstmt->setString(2, "abcd");
             pstmt->executeUpdate();
-            cout << "ë¹„ë°€ë²ˆí˜¸ê°€ ì—…ë°ì´íŠ¸ë˜ì—ˆìŠµë‹ˆë‹¤." << endl;
+            cout << "ºñ¹Ğ¹øÈ£°¡ ¾÷µ¥ÀÌÆ®µÇ¾ú½À´Ï´Ù." << endl;
         }
         else {
-            cout << "ì…ë ¥í•œ ë¹„ë°€ë²ˆí˜¸ê°€ ì¼ì¹˜í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤." << endl;
+            cout << "ÀÔ·ÂÇÑ ºñ¹Ğ¹øÈ£°¡ ÀÏÄ¡ÇÏÁö ¾Ê½À´Ï´Ù." << endl;
         }
     }
     else {
-        cout << "ì‚¬ìš©ìë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤." << endl;
+        cout << "»ç¿ëÀÚ¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù." << endl;
     }
 
     cout << "Finished update table" << endl;
@@ -354,30 +355,30 @@ void db_UserEdit() {
 
 void db_selectQuery_ver2() {
     db_init();
-    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
+    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
     stmt = con->createStatement();
-    res = stmt->executeQuery("SELECT * FROM inventory"); // from ë’¤ì—ëŠ” ì‹¤ì œë¡œ mysql ì—ì„œ ì‚¬ìš©í•˜ëŠ” í…Œì´ë¸”ì˜ ì´ë¦„ì„ ì¨ì•¼í•œë‹¤.
+    res = stmt->executeQuery("SELECT * FROM inventory"); // from µÚ¿¡´Â ½ÇÁ¦·Î mysql ¿¡¼­ »ç¿ëÇÏ´Â Å×ÀÌºíÀÇ ÀÌ¸§À» ½á¾ßÇÑ´Ù.
 
     delete stmt;
 
-    // ê²°ê³¼ ì¶œë ¥
+    // °á°ú Ãâ·Â
     while (res->next()) {
-        cout << "Column1: " << res->getString("name") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
-        cout << "Column2: " << res->getString("quantity") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+        cout << "Column1: " << res->getString("name") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
+        cout << "Column2: " << res->getString("quantity") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
     }
 
-    // MySQL Connector/C++ ì •ë¦¬
+    // MySQL Connector/C++ Á¤¸®
     delete pstmt;
     delete con;
 }
-  
+
 void db_userlist() {
     db_init();
     cout << "\n";
     stmt = con->createStatement();
     res = stmt->executeQuery("SELECT * FROM users");
 
-    cout << "[í˜„ì¬ ê°€ì…ëœ ìœ ì € ëª©ë¡]" << endl;
+    cout << "[ÇöÀç °¡ÀÔµÈ À¯Àú ¸ñ·Ï]" << endl;
     while (res->next()) {
         cout << "ID : " << res->getString("user_id") << endl;
     }
@@ -387,14 +388,14 @@ void db_findID() {
     db_init();
     string name, phonenumber;
 
-    cout << "IDë¥¼ ì°¾ì„ ì´ë¦„ì„ ì…ë ¥í•˜ì„¸ìš”. : ";
+    cout << "ID¸¦ Ã£À» ÀÌ¸§À» ÀÔ·ÂÇÏ¼¼¿ä. : ";
     cin >> name;
-    
+
     while (true) {
-        cout << "ì „í™”ë²ˆí˜¸ë¥¼ ì…ë ¥í•˜ì„¸ìš”. : ";
+        cout << "ÀüÈ­¹øÈ£¸¦ ÀÔ·ÂÇÏ¼¼¿ä. : ";
         cin >> phonenumber;
         if (phonenumber.length() != 13) {
-            cout << "â–¶ ì „í™”ë²ˆí˜¸ë¥¼ ë‹¤ì‹œ ì…ë ¥í•´ì£¼ì„¸ìš”. (- í¬í•¨)" << endl;
+            cout << "¢º ÀüÈ­¹øÈ£¸¦ ´Ù½Ã ÀÔ·ÂÇØÁÖ¼¼¿ä. (- Æ÷ÇÔ)" << endl;
             continue;
         }
         break;
@@ -410,14 +411,14 @@ void db_findID() {
         string db_phonenumber = res->getString(3);
 
         if (db_name == name && db_phonenumber == phonenumber) {
-            cout << name << "ë‹˜ì˜ ì•„ì´ë””ëŠ” " << db_id << " ì…ë‹ˆë‹¤." << endl;
+            cout << name << "´ÔÀÇ ¾ÆÀÌµğ´Â " << db_id << " ÀÔ´Ï´Ù." << endl;
         }
         else {
-            cout << "ì…ë ¥í•˜ì‹  ì •ë³´ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤." << endl;
+            cout << "ÀÔ·ÂÇÏ½Å Á¤º¸¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù." << endl;
         }
     }
     else {
-        cout << "ì…ë ¥í•˜ì‹  ì •ë³´ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤." << endl;
+        cout << "ÀÔ·ÂÇÏ½Å Á¤º¸¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù." << endl;
     }
 }
 
@@ -425,16 +426,16 @@ void db_findPW() {
     db_init();
     string user_id, name, phonenumber;
 
-    cout << "IDë¥¼ ì…ë ¥í•˜ì„¸ìš”. : ";
+    cout << "ID¸¦ ÀÔ·ÂÇÏ¼¼¿ä. : ";
     cin >> user_id;
-    cout << "IDë¥¼ ì°¾ì„ ì´ë¦„ì„ ì…ë ¥í•˜ì„¸ìš”. : ";
+    cout << "ID¸¦ Ã£À» ÀÌ¸§À» ÀÔ·ÂÇÏ¼¼¿ä. : ";
     cin >> name;
 
     while (true) {
-        cout << "ì „í™”ë²ˆí˜¸ë¥¼ ì…ë ¥í•˜ì„¸ìš”. : ";
+        cout << "ÀüÈ­¹øÈ£¸¦ ÀÔ·ÂÇÏ¼¼¿ä. : ";
         cin >> phonenumber;
         if (phonenumber.length() != 13) {
-            cout << "â–¶ ì „í™”ë²ˆí˜¸ë¥¼ ë‹¤ì‹œ ì…ë ¥í•´ì£¼ì„¸ìš”. (- í¬í•¨)" << endl;
+            cout << "¢º ÀüÈ­¹øÈ£¸¦ ´Ù½Ã ÀÔ·ÂÇØÁÖ¼¼¿ä. (- Æ÷ÇÔ)" << endl;
             continue;
         }
         break;
@@ -451,22 +452,22 @@ void db_findPW() {
         string db_phonenumber = res->getString(4);
 
         if (db_id == user_id && db_name == name && db_phonenumber == phonenumber) {
-            cout << user_id << "ë‹˜ì˜ ë¹„ë°€ë²ˆí˜¸ëŠ” " << db_pw << " ì…ë‹ˆë‹¤." << endl;
+            cout << user_id << "´ÔÀÇ ºñ¹Ğ¹øÈ£´Â " << db_pw << " ÀÔ´Ï´Ù." << endl;
         }
         else {
-            cout << "ì…ë ¥í•˜ì‹  ì •ë³´ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤." << endl;
+            cout << "ÀÔ·ÂÇÏ½Å Á¤º¸¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù." << endl;
             cout << "dddd" << endl;
         }
     }
     else {
-        cout << "ì…ë ¥í•˜ì‹  ì •ë³´ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤." << endl;
+        cout << "ÀÔ·ÂÇÏ½Å Á¤º¸¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù." << endl;
         cout << "djdk" << endl;
     }
 }
 
 //
-//    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
-//    // ë°ì´í„°ë² ì´ìŠ¤ì—ì„œ í˜„ì¬ ë¹„ë°€ë²ˆí˜¸ë¥¼ ê°€ì ¸ì˜¤ëŠ” ì¿¼ë¦¬
+//    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
+//    // µ¥ÀÌÅÍº£ÀÌ½º¿¡¼­ ÇöÀç ºñ¹Ğ¹øÈ£¸¦ °¡Á®¿À´Â Äõ¸®
 //    string selectQuery = "SELECT pw FROM users WHERE user_id = ?";
 //    pstmt = con->prepareStatement(selectQuery);
 //    pstmt->setString(1, "kms");
@@ -474,27 +475,27 @@ void db_findPW() {
 //    if (res->next()) {
 //        string database_password = res->getString("pw");
 //        string user_input_password;
-//        cout << "ë¹„ë°€ë²ˆí˜¸ì„ ì…ë ¥í•˜ì„¸ìš”. : ";
+//        cout << "ºñ¹Ğ¹øÈ£À» ÀÔ·ÂÇÏ¼¼¿ä. : ";
 //        cin >> user_input_password;
-//        // ì‚¬ìš©ìê°€ ì…ë ¥í•œ ë¹„ë°€ë²ˆí˜¸ì™€ ë°ì´í„°ë² ì´ìŠ¤ì˜ ë¹„ë°€ë²ˆí˜¸ ë¹„êµ
+//        // »ç¿ëÀÚ°¡ ÀÔ·ÂÇÑ ºñ¹Ğ¹øÈ£¿Í µ¥ÀÌÅÍº£ÀÌ½ºÀÇ ºñ¹Ğ¹øÈ£ ºñ±³
 //        if (user_input_password == database_password) {
-//            // ì…ë ¥í•œ ë¹„ë°€ë²ˆí˜¸ì™€ ë°ì´í„°ë² ì´ìŠ¤ ë¹„ë°€ë²ˆí˜¸ê°€ ì¼ì¹˜í•˜ë©´ ì—…ë°ì´íŠ¸ ìˆ˜í–‰
-//            cout << "í™•ì¸ ë˜ì—ˆìŠµë‹ˆë‹¤." << endl;
-//            cout << "ë¹„ë°€ë²ˆí˜¸ì„ ì…ë ¥í•˜ì„¸ìš”. : " << endl;
+//            // ÀÔ·ÂÇÑ ºñ¹Ğ¹øÈ£¿Í µ¥ÀÌÅÍº£ÀÌ½º ºñ¹Ğ¹øÈ£°¡ ÀÏÄ¡ÇÏ¸é ¾÷µ¥ÀÌÆ® ¼öÇà
+//            cout << "È®ÀÎ µÇ¾ú½À´Ï´Ù." << endl;
+//            cout << "ºñ¹Ğ¹øÈ£À» ÀÔ·ÂÇÏ¼¼¿ä. : " << endl;
 //            cin >> user_input_password;
 //            string updateQuery = "UPDATE users SET pw = ? WHERE user_id = ?";
 //            pstmt = con->prepareStatement(updateQuery);
 //            pstmt->setString(1, user_input_password);
 //            pstmt->setString(2, "kms");
 //            pstmt->executeUpdate();
-//            cout << "ë¹„ë°€ë²ˆí˜¸ê°€ ì—…ë°ì´íŠ¸ë˜ì—ˆìŠµë‹ˆë‹¤." << endl;
+//            cout << "ºñ¹Ğ¹øÈ£°¡ ¾÷µ¥ÀÌÆ®µÇ¾ú½À´Ï´Ù." << endl;
 //        }
 //        else {
-//            cout << "ì…ë ¥í•œ ë¹„ë°€ë²ˆí˜¸ê°€ ì¼ì¹˜í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤." << endl;
+//            cout << "ÀÔ·ÂÇÑ ºñ¹Ğ¹øÈ£°¡ ÀÏÄ¡ÇÏÁö ¾Ê½À´Ï´Ù." << endl;
 //        }
 //    }
 //    else {
-//        cout << "ì‚¬ìš©ìë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤." << endl;
+//        cout << "»ç¿ëÀÚ¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù." << endl;
 //    }
 //    cout << "Finished update table" << endl;
 //}
@@ -503,7 +504,7 @@ void db_callMessage() {
     db_init();
 
     string num;
-    cout << "ë¶ˆëŸ¬ì˜¬ ì±„íŒ…ë°© ë²ˆí˜¸ë¥¼ ì…ë ¥í•˜ì„¸ìš”. : "; // ì±„íŒ…ë°© ë²ˆí˜¸ë„ ìœ ì € ì •ë³´ì—ì„œ ì¶œë ¥í•´ì¤˜ì•¼í•  ë“¯
+    cout << "ºÒ·¯¿Ã Ã¤ÆÃ¹æ ¹øÈ£¸¦ ÀÔ·ÂÇÏ¼¼¿ä. : "; // Ã¤ÆÃ¹æ ¹øÈ£µµ À¯Àú Á¤º¸¿¡¼­ Ãâ·ÂÇØÁà¾ßÇÒ µí
     cin >> num;
     stmt = con->createStatement();
     res = stmt->executeQuery("SELECT * FROM message_room where chatroom_num = '" + num + "'");
@@ -519,19 +520,19 @@ void db_callMessage() {
 
 int main() {
     WSADATA wsa;
-    // Winsockë¥¼ ì´ˆê¸°í™”í•˜ëŠ” í•¨ìˆ˜. MAKEWORD(2, 2)ëŠ” Winsockì˜ 2.2 ë²„ì „ì„ ì‚¬ìš©í•˜ê² ë‹¤ëŠ” ì˜ë¯¸.
-    // ì‹¤í–‰ì— ì„±ê³µí•˜ë©´ 0ì„, ì‹¤íŒ¨í•˜ë©´ ê·¸ ì´ì™¸ì˜ ê°’ì„ ë°˜í™˜.
-    // 0ì„ ë°˜í™˜í–ˆë‹¤ëŠ” ê²ƒì€ Winsockì„ ì‚¬ìš©í•  ì¤€ë¹„ê°€ ë˜ì—ˆë‹¤ëŠ” ì˜ë¯¸.
+    // Winsock¸¦ ÃÊ±âÈ­ÇÏ´Â ÇÔ¼ö. MAKEWORD(2, 2)´Â WinsockÀÇ 2.2 ¹öÀüÀ» »ç¿ëÇÏ°Ú´Ù´Â ÀÇ¹Ì.
+    // ½ÇÇà¿¡ ¼º°øÇÏ¸é 0À», ½ÇÆĞÇÏ¸é ±× ÀÌ¿ÜÀÇ °ªÀ» ¹İÈ¯.
+    // 0À» ¹İÈ¯Çß´Ù´Â °ÍÀº WinsockÀ» »ç¿ëÇÒ ÁØºñ°¡ µÇ¾ú´Ù´Â ÀÇ¹Ì.
     int code = WSAStartup(MAKEWORD(2, 2), &wsa);
     if (!code) {
         server_init();
         std::thread th1[MAX_CLIENT];
         for (int i = 0; i < MAX_CLIENT; i++) {
-            // ì¸ì› ìˆ˜ ë§Œí¼ thread ìƒì„±í•´ì„œ ê°ê°ì˜ í´ë¼ì´ì–¸íŠ¸ê°€ ë™ì‹œì— ì†Œí†µí•  ìˆ˜ ìˆë„ë¡ í•¨.
+            // ÀÎ¿ø ¼ö ¸¸Å­ thread »ı¼ºÇØ¼­ °¢°¢ÀÇ Å¬¶óÀÌ¾ğÆ®°¡ µ¿½Ã¿¡ ¼ÒÅëÇÒ ¼ö ÀÖµµ·Ï ÇÔ.
             th1[i] = std::thread(add_client);
         }
-        //std::thread th1(add_client); // ì´ë ‡ê²Œ í•˜ë©´ í•˜ë‚˜ì˜ clientë§Œ ë°›ì•„ì§...
-        while (1) { // ë¬´í•œ ë°˜ë³µë¬¸ì„ ì‚¬ìš©í•˜ì—¬ ì„œë²„ê°€ ê³„ì†í•´ì„œ ì±„íŒ… ë³´ë‚¼ ìˆ˜ ìˆëŠ” ìƒíƒœë¥¼ ë§Œë“¤ì–´ ì¤Œ. ë°˜ë³µë¬¸ì„ ì‚¬ìš©í•˜ì§€ ì•Šìœ¼ë©´ í•œ ë²ˆë§Œ ë³´ë‚¼ ìˆ˜ ìˆìŒ.
+        //std::thread th1(add_client); // ÀÌ·¸°Ô ÇÏ¸é ÇÏ³ªÀÇ client¸¸ ¹Ş¾ÆÁü...
+        while (1) { // ¹«ÇÑ ¹İº¹¹®À» »ç¿ëÇÏ¿© ¼­¹ö°¡ °è¼ÓÇØ¼­ Ã¤ÆÃ º¸³¾ ¼ö ÀÖ´Â »óÅÂ¸¦ ¸¸µé¾î ÁÜ. ¹İº¹¹®À» »ç¿ëÇÏÁö ¾ÊÀ¸¸é ÇÑ ¹ø¸¸ º¸³¾ ¼ö ÀÖÀ½.
             string text, msg = "";
             std::getline(cin, text);
             const char* buf = text.c_str();
@@ -540,15 +541,15 @@ int main() {
         }
         for (int i = 0; i < MAX_CLIENT; i++) {
             th1[i].join();
-            //join : í•´ë‹¹í•˜ëŠ” thread ë“¤ì´ ì‹¤í–‰ì„ ì¢…ë£Œí•˜ë©´ ë¦¬í„´í•˜ëŠ” í•¨ìˆ˜.
-            //join í•¨ìˆ˜ê°€ ì—†ìœ¼ë©´ main í•¨ìˆ˜ê°€ ë¨¼ì € ì¢…ë£Œë˜ì–´ì„œ threadê°€ ì†Œë©¸í•˜ê²Œ ë¨.
-            //thread ì‘ì—…ì´ ëë‚  ë•Œê¹Œì§€ main í•¨ìˆ˜ê°€ ëë‚˜ì§€ ì•Šë„ë¡ í•´ì¤Œ.
+            //join : ÇØ´çÇÏ´Â thread µéÀÌ ½ÇÇàÀ» Á¾·áÇÏ¸é ¸®ÅÏÇÏ´Â ÇÔ¼ö.
+            //join ÇÔ¼ö°¡ ¾øÀ¸¸é main ÇÔ¼ö°¡ ¸ÕÀú Á¾·áµÇ¾î¼­ thread°¡ ¼Ò¸êÇÏ°Ô µÊ.
+            //thread ÀÛ¾÷ÀÌ ³¡³¯ ¶§±îÁö main ÇÔ¼ö°¡ ³¡³ªÁö ¾Êµµ·Ï ÇØÁÜ.
         }
         //th1.join();
         closesocket(server_sock.sck);
     }
     else {
-        cout << "í”„ë¡œê·¸ë¨ ì¢…ë£Œ. (Error code : " << code << ")";
+        cout << "ÇÁ·Î±×·¥ Á¾·á. (Error code : " << code << ")";
     }
 
 
@@ -558,18 +559,18 @@ int main() {
 }
 void server_init() {
     server_sock.sck = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    // Internetì˜ Stream ë°©ì‹ìœ¼ë¡œ ì†Œì¼“ ìƒì„±
-   // SOCKET_INFOì˜ ì†Œì¼“ ê°ì²´ì— socket í•¨ìˆ˜ ë°˜í™˜ê°’(ë””ìŠ¤í¬ë¦½í„° ì €ì¥)
-   // ì¸í„°ë„· ì£¼ì†Œì²´ê³„, ì—°ê²°ì§€í–¥, TCP í”„ë¡œí† ì½œ ì“¸ ê²ƒ.
-    SOCKADDR_IN server_addr = {}; // ì†Œì¼“ ì£¼ì†Œ ì„¤ì • ë³€ìˆ˜
-    // ì¸í„°ë„· ì†Œì¼“ ì£¼ì†Œì²´ê³„ server_addr
-    server_addr.sin_family = AF_INET; // ì†Œì¼“ì€ Internet íƒ€ì…
-    server_addr.sin_port = htons(7777); // ì„œë²„ í¬íŠ¸ ì„¤ì •
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);  // ì„œë²„ì´ê¸° ë•Œë¬¸ì— local ì„¤ì •í•œë‹¤.
-    //Anyì¸ ê²½ìš°ëŠ” í˜¸ìŠ¤íŠ¸ë¥¼ 127.0.0.1ë¡œ ì¡ì•„ë„ ë˜ê³  localhostë¡œ ì¡ì•„ë„ ë˜ê³  ì–‘ìª½ ë‹¤ í—ˆìš©í•˜ê²Œ í•  ìˆ˜ ìˆë”°. ê·¸ê²ƒì´ INADDR_ANYì´ë‹¤.
-    //ip ì£¼ì†Œë¥¼ ì €ì¥í•  ë• server_addr.sin_addr.s_addr -- ì •í•´ì§„ ëª¨ì–‘?
-    bind(server_sock.sck, (sockaddr*)&server_addr, sizeof(server_addr)); // ì„¤ì •ëœ ì†Œì¼“ ì •ë³´ë¥¼ ì†Œì¼“ì— ë°”ì¸ë”©í•œë‹¤.
-    listen(server_sock.sck, SOMAXCONN); // ì†Œì¼“ì„ ëŒ€ê¸° ìƒíƒœë¡œ ê¸°ë‹¤ë¦°ë‹¤.
+    // InternetÀÇ Stream ¹æ½ÄÀ¸·Î ¼ÒÄÏ »ı¼º
+   // SOCKET_INFOÀÇ ¼ÒÄÏ °´Ã¼¿¡ socket ÇÔ¼ö ¹İÈ¯°ª(µğ½ºÅ©¸³ÅÍ ÀúÀå)
+   // ÀÎÅÍ³İ ÁÖ¼ÒÃ¼°è, ¿¬°áÁöÇâ, TCP ÇÁ·ÎÅäÄİ ¾µ °Í.
+    SOCKADDR_IN server_addr = {}; // ¼ÒÄÏ ÁÖ¼Ò ¼³Á¤ º¯¼ö
+    // ÀÎÅÍ³İ ¼ÒÄÏ ÁÖ¼ÒÃ¼°è server_addr
+    server_addr.sin_family = AF_INET; // ¼ÒÄÏÀº Internet Å¸ÀÔ
+    server_addr.sin_port = htons(7777); // ¼­¹ö Æ÷Æ® ¼³Á¤
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);  // ¼­¹öÀÌ±â ¶§¹®¿¡ local ¼³Á¤ÇÑ´Ù.
+    //AnyÀÎ °æ¿ì´Â È£½ºÆ®¸¦ 127.0.0.1·Î Àâ¾Æµµ µÇ°í localhost·Î Àâ¾Æµµ µÇ°í ¾çÂÊ ´Ù Çã¿ëÇÏ°Ô ÇÒ ¼ö ÀÖµû. ±×°ÍÀÌ INADDR_ANYÀÌ´Ù.
+    //ip ÁÖ¼Ò¸¦ ÀúÀåÇÒ ¶© server_addr.sin_addr.s_addr -- Á¤ÇØÁø ¸ğ¾ç?
+    bind(server_sock.sck, (sockaddr*)&server_addr, sizeof(server_addr)); // ¼³Á¤µÈ ¼ÒÄÏ Á¤º¸¸¦ ¼ÒÄÏ¿¡ ¹ÙÀÎµùÇÑ´Ù.
+    listen(server_sock.sck, SOMAXCONN); // ¼ÒÄÏÀ» ´ë±â »óÅÂ·Î ±â´Ù¸°´Ù.
     server_sock.user = "server";
     cout << "Server On" << endl;
 
@@ -578,26 +579,39 @@ void add_client() {
     SOCKADDR_IN addr = {};
     int addrsize = sizeof(addr);
     char buf[MAX_SIZE] = { };
-    ZeroMemory(&addr, addrsize); // addrì˜ ë©”ëª¨ë¦¬ ì˜ì—­ì„ 0ìœ¼ë¡œ ì´ˆê¸°í™”
+    ZeroMemory(&addr, addrsize); // addrÀÇ ¸Ş¸ğ¸® ¿µ¿ªÀ» 0À¸·Î ÃÊ±âÈ­
     SOCKET_INFO new_client = {};
     new_client.sck = accept(server_sock.sck, (sockaddr*)&addr, &addrsize);
     recv(new_client.sck, buf, MAX_SIZE, 0);
-    // Winsock2ì˜ recv í•¨ìˆ˜. clientê°€ ë³´ë‚¸ ë‹‰ë„¤ì„ì„ ë°›ìŒ.
+    // Winsock2ÀÇ recv ÇÔ¼ö. client°¡ º¸³½ ´Ğ³×ÀÓÀ» ¹ŞÀ½.
     new_client.user = string(buf);
     cout << "buf" << buf << endl;
 
-    string msg = "[ê³µì§€] " + new_client.user + " ë‹˜ì´ ì…ì¥í–ˆìŠµë‹ˆë‹¤.";
+    // ¹®ÀÚ¿­À» ½ºÆ®¸²¿¡ ³Ö°í °ø¹éÀ» ±âÁØÀ¸·Î ºĞÇÒÇÏ¿© º¤ÅÍ¿¡ ÀúÀå
+    std::istringstream iss(buf);
+    std::vector<std::string> tokens;
+    std::string token;
+
+    while (iss >> token) {
+        tokens.push_back(token);
+    }
+
+    cout << " user_request is tokens[0]. =  " << tokens[0] << endl;
+    cout << " tokens[0] Àº " << tokens[0] << endl;
+
+
+    string msg = "[°øÁö] " + new_client.user + " ´ÔÀÌ ÀÔÀåÇß½À´Ï´Ù.";
     cout << msg << endl;
-    sck_list.push_back(new_client); // client ì •ë³´ë¥¼ ë‹µëŠ” sck_list ë°°ì—´ì— ìƒˆë¡œìš´ client ì¶”ê°€
+    sck_list.push_back(new_client); // client Á¤º¸¸¦ ´ä´Â sck_list ¹è¿­¿¡ »õ·Î¿î client Ãß°¡
     std::thread th(recv_msg, client_count);
-    // ë‹¤ë¥¸ ì‚¬ëŒë“¤ë¡œë¶€í„° ì˜¤ëŠ” ë©”ì‹œì§€ë¥¼ ê³„ì†í•´ì„œ ë°›ì„ ìˆ˜ ìˆëŠ” ìƒíƒœë¡œ ë§Œë“¤ì–´ ë‘ê¸°.
-    client_count++; // client ìˆ˜ ì¦ê°€.
-    //cout << "[ê³µì§€] í˜„ì¬ ì ‘ì†ì ìˆ˜ : " << client_count << "ëª…" << endl;
-    send_msg(msg.c_str()); // c_str : string íƒ€ì…ì„ const chqr* íƒ€ì…ìœ¼ë¡œ ë°”ê¿”ì¤Œ.
+    // ´Ù¸¥ »ç¶÷µé·ÎºÎÅÍ ¿À´Â ¸Ş½ÃÁö¸¦ °è¼ÓÇØ¼­ ¹ŞÀ» ¼ö ÀÖ´Â »óÅÂ·Î ¸¸µé¾î µÎ±â.
+    client_count++; // client ¼ö Áõ°¡.
+    //cout << "[°øÁö] ÇöÀç Á¢¼ÓÀÚ ¼ö : " << client_count << "¸í" << endl;
+    send_msg(msg.c_str()); // c_str : string Å¸ÀÔÀ» const chqr* Å¸ÀÔÀ¸·Î ¹Ù²ãÁÜ.
     th.join();
 }
 void send_msg(const char* msg) {
-    for (int i = 0; i < client_count; i++) { // ì ‘ì†í•´ ìˆëŠ” ëª¨ë“  clientì—ê²Œ ë©”ì‹œì§€ ì „ì†¡
+    for (int i = 0; i < client_count; i++) { // Á¢¼ÓÇØ ÀÖ´Â ¸ğµç client¿¡°Ô ¸Ş½ÃÁö Àü¼Û
         send(sck_list[i].sck, msg, MAX_SIZE, 0);
     }
 }
@@ -607,16 +621,16 @@ void recv_msg(int idx) {
     //cout << sck_list[idx].user << endl;
     while (1) {
         ZeroMemory(&buf, MAX_SIZE);
-        if (recv(sck_list[idx].sck, buf, MAX_SIZE, 0) > 0) { // ì˜¤ë¥˜ê°€ ë°œìƒí•˜ì§€ ì•Šìœ¼ë©´ recvëŠ” ìˆ˜ì‹ ëœ ë°”ì´íŠ¸ ìˆ˜ë¥¼ ë°˜í™˜. 0ë³´ë‹¤ í¬ë‹¤ëŠ” ê²ƒì€ ë©”ì‹œì§€ê°€ ì™”ë‹¤ëŠ” ê²ƒ.
+        if (recv(sck_list[idx].sck, buf, MAX_SIZE, 0) > 0) { // ¿À·ù°¡ ¹ß»ıÇÏÁö ¾ÊÀ¸¸é recv´Â ¼ö½ÅµÈ ¹ÙÀÌÆ® ¼ö¸¦ ¹İÈ¯. 0º¸´Ù Å©´Ù´Â °ÍÀº ¸Ş½ÃÁö°¡ ¿Ô´Ù´Â °Í.
             msg = sck_list[idx].user + " : " + buf;
             cout << msg << endl;
             send_msg(msg.c_str());
         }
-        else { //ê·¸ë ‡ì§€ ì•Šì„ ê²½ìš° í‡´ì¥ì— ëŒ€í•œ ì‹ í˜¸ë¡œ ìƒê°í•˜ì—¬ í‡´ì¥ ë©”ì‹œì§€ ì „ì†¡
-            msg = "[ê³µì§€] " + sck_list[idx].user + " ë‹˜ì´ í‡´ì¥í–ˆìŠµë‹ˆë‹¤.";
+        else { //±×·¸Áö ¾ÊÀ» °æ¿ì ÅğÀå¿¡ ´ëÇÑ ½ÅÈ£·Î »ı°¢ÇÏ¿© ÅğÀå ¸Ş½ÃÁö Àü¼Û
+            msg = "[°øÁö] " + sck_list[idx].user + " ´ÔÀÌ ÅğÀåÇß½À´Ï´Ù.";
             cout << msg << endl;
             send_msg(msg.c_str());
-            del_client(idx); // í´ë¼ì´ì–¸íŠ¸ ì‚­ì œ
+            del_client(idx); // Å¬¶óÀÌ¾ğÆ® »èÁ¦
             return;
         }
     }
@@ -624,6 +638,6 @@ void recv_msg(int idx) {
 
 void del_client(int idx) {
     closesocket(sck_list[idx].sck);
-    //sck_list.erase(sck_list.begin() + idx); // ë°°ì—´ì—ì„œ í´ë¼ì´ì–¸íŠ¸ë¥¼ ì‚­ì œí•˜ê²Œ ë  ê²½ìš° indexê°€ ë‹¬ë¼ì§€ë©´ì„œ ëŸ°íƒ€ì„ ì˜¤ë¥˜ ë°œìƒ....ã…
+    //sck_list.erase(sck_list.begin() + idx); // ¹è¿­¿¡¼­ Å¬¶óÀÌ¾ğÆ®¸¦ »èÁ¦ÇÏ°Ô µÉ °æ¿ì index°¡ ´Ş¶óÁö¸é¼­ ·±Å¸ÀÓ ¿À·ù ¹ß»ı....¤¾
     client_count--;
 }
