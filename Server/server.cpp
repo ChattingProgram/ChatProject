@@ -5,6 +5,7 @@
 #include <thread>
 #include <vector>
 #include <mysql/jdbc.h> // C++하고 MYSQL을 연결하기 위해 선언.
+#include <sstream> // 요구사항 분리해서 저장하기 위해 필요함.
 
 #define MAX_SIZE 1024
 #define MAX_CLIENT 3
@@ -585,6 +586,19 @@ void add_client() {
     // Winsock2의 recv 함수. client가 보낸 닉네임을 받음.
     new_client.user = string(buf);
     cout << "buf" << buf << endl;
+
+    // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
+    std::istringstream iss(buf);
+    std::vector<std::string> tokens;
+    std::string token;
+
+    while (iss >> token) {
+        tokens.push_back(token);
+    }
+
+    cout << " user_request is tokens[0]. =  " << tokens[0] << endl;
+    cout << " tokens[0] 은 " << tokens[0] << endl;
+
 
     string msg = "[공지] " + new_client.user + " 님이 입장했습니다.";
     cout << msg << endl;

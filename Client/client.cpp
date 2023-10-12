@@ -47,6 +47,7 @@ int main() {
     int code = WSAStartup(MAKEWORD(2, 2), &wsa);
 
     if (!code) {
+        string User_request = "1";
         cout << "아아디 입력 >> ";
         cin >> my_nick;
         cout << "비밀번호 입력 >> ";
@@ -65,7 +66,7 @@ int main() {
                 cout << "Server Connect" << endl;
                 //send(client_sock, my_nick.c_str(), my_nick.length(), 0); // 연결에 성공하면 client 가 입력한 닉네임을 서버로 전송
                 //send(client_sock, my_pw.c_str(), my_pw.length(), 0);
-                string msg = my_nick + " " + my_pw;
+                string msg = User_request + " " + my_nick + " " + my_pw;
                 send(client_sock, msg.c_str(), msg.length(), 0);
                 break;
             }
