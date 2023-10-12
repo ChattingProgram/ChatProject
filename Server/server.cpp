@@ -109,18 +109,6 @@ void db_dropQuery() {
 }
 //쿼리문 수정 필요함
 
-void db_updateQuery() {
-    db_init();
-    // 데이터베이스 쿼리 실행
-    stmt = con->createStatement();
-    stmt->execute("UPDATE TABLE IF EXISTS inventory"); // UPDATE
-    cout << "Finished update table" << endl;
-    delete stmt;
-    // MySQL Connector/C++ 정리
-    delete pstmt;
-    delete con;
-}
-
 
 void db_updateQuery() {
     db_init();
@@ -252,7 +240,7 @@ void db_UserEdit() {
     // 데이터베이스에서 현재 비밀번호를 가져오는 쿼리
     string selectQuery = "SELECT pw FROM users WHERE user_id = ?";
     pstmt = con->prepareStatement(selectQuery);
-    pstmt->setString(1, "kms");
+    pstmt->setString(1, "abcd");
     res = pstmt->executeQuery();
 
     if (res->next()) {
@@ -272,7 +260,7 @@ void db_UserEdit() {
             string updateQuery = "UPDATE users SET pw = ? WHERE user_id = ?";
             pstmt = con->prepareStatement(updateQuery);
             pstmt->setString(1, user_input_password);
-            pstmt->setString(2, "kms");
+            pstmt->setString(2, "abcd");
             pstmt->executeUpdate();
             cout << "비밀번호가 업데이트되었습니다." << endl;
         }
@@ -360,7 +348,6 @@ void server_init() {
     server_sock.user = "server";
     cout << "Server On" << endl;
 
-    db_UserEdit();
 }
 void add_client() {
     SOCKADDR_IN addr = {};
@@ -372,6 +359,8 @@ void add_client() {
     recv(new_client.sck, buf, MAX_SIZE, 0);
     // Winsock2의 recv 함수. client가 보낸 닉네임을 받음.
     new_client.user = string(buf);
+    cout << "buf" << buf << endl;
+
     string msg = "[공지] " + new_client.user + " 님이 입장했습니다.";
     cout << msg << endl;
     sck_list.push_back(new_client); // client 정보를 답는 sck_list 배열에 새로운 client 추가

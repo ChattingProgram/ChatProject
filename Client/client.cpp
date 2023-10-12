@@ -16,6 +16,7 @@ using std::string;
 
 SOCKET client_sock;
 string my_nick;
+string my_pw;
 
 int chat_recv() {
     char buf[MAX_SIZE] = { };
@@ -46,8 +47,10 @@ int main() {
     int code = WSAStartup(MAKEWORD(2, 2), &wsa);
 
     if (!code) {
-        cout << "사용할 닉네임 입력 >> ";
+        cout << "아아디 입력 >> ";
         cin >> my_nick;
+        cout << "비밀번호 입력 >> ";
+        cin >> my_pw;
 
         client_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP); // 
 
@@ -60,7 +63,10 @@ int main() {
         while (1) {
             if (!connect(client_sock, (SOCKADDR*)&client_addr, sizeof(client_addr))) { // 위에 설정한 정보에 해당하는 server로 연결!
                 cout << "Server Connect" << endl;
-                send(client_sock, my_nick.c_str(), my_nick.length(), 0); // 연결에 성공하면 client 가 입력한 닉네임을 서버로 전송
+                //send(client_sock, my_nick.c_str(), my_nick.length(), 0); // 연결에 성공하면 client 가 입력한 닉네임을 서버로 전송
+                //send(client_sock, my_pw.c_str(), my_pw.length(), 0);
+                string msg = my_nick + " " + my_pw;
+                send(client_sock, msg.c_str(), msg.length(), 0);
                 break;
             }
             cout << "Connecting..." << endl;
