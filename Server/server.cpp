@@ -47,11 +47,11 @@ void db_insertQuery(); // db 인서트 쿼리 + 세분화가 필요하다.
 void db_dropQuery(); // db 드롭 쿼리 + 굳이 필요하지는 않다.
 void db_updateQuery(); // db 업데이트 쿼리
 void db_selectQuery(); //db 셀랙트문
+void db_login();
 void db_countuser(); // (1) 유저 수 몇 명인지? (서버 공지로 활용)
 void db_userlist(); // (3) 유저 목록 출력
 void db_findID(); // (7) 유저 정보 찾기
-void db_findPW();
-void db_callMessage();
+void db_callMessage(); // 기존 채팅방 불러오기
 
 void db_init() {
     try {
@@ -147,6 +147,33 @@ void db_selectQuery() {
     delete con;
 }
 
+void db_login() {
+    db_init();
+
+    string user_id, pw;
+
+    cout << "ID를 입력하세요. : ";
+    cin >> user_id;
+    cout << "비밀번호를 입력하세요. : ";
+    cin >> pw;
+
+    pstmt = con->prepareStatement("SELECT user_id, pw FROM users WHERE user_id = ?");
+    pstmt->setString(1, user_id);
+    res = pstmt->executeQuery();
+
+    if (res->next()) {
+        string db_id = res->getString(1);
+        string db_pw = res->getString(2);
+
+        if (db_id == user_id && db_pw == pw) {
+            cout << " ▶ 로그인 성공! " << endl;
+        }
+        else {
+            cout << " ▶ 로그인 실패!  " << endl;
+        }
+    }
+}
+
 void db_countuser() {
     db_init();
     cout << "\n";
@@ -174,32 +201,85 @@ void db_userlist() {
 
 void db_findID() {
     db_init();
-    string user_input_name, user_input_phonenumber;
+    string name, phonenumber;
 
     cout << "ID를 찾을 이름을 입력하세요. : ";
-    cin >> user_input_name;
-    cout << "전화번호를 입력하세요. : ";
-    cin >> user_input_phonenumber;
+    cin >> name;
+    
+    while (true) {
+        cout << "전화번호를 입력하세요. : ";
+        cin >> phonenumber;
+        if (phonenumber.length() != 13) {
+            cout << "▶ 전화번호를 다시 입력해주세요. (- 포함)" << endl;
+            continue;
+        }
+        break;
+    }
 
-    stmt = con->createStatement();
-    res = stmt->executeQuery("SELECT user_id FROM users where name = '" + user_input_name + "' and phonenumber = '" + user_input_phonenumber + "'");
+    pstmt = con->prepareStatement("SELECT user_id, name, phonenumber FROM users WHERE phonenumber = ?");
+    pstmt->setString(1, phonenumber);
+    res = pstmt->executeQuery();
 
-    if (res->getString("user_id") != NULL) {
-        cout << "ID : " << res->getString("user_id") << endl;
+    if (res->next()) {
+        string db_id = res->getString(1);
+        string db_name = res->getString(2);
+        string db_phonenumber = res->getString(3);
+
+        if (db_name == name && db_phonenumber == phonenumber) {
+            cout << name << "님의 아이디는 " << db_id << " 입니다." << endl;
+        }
+        else {
+            cout << "입력하신 정보를 찾을 수 없습니다." << endl;
+        }
     }
     else {
-        cout << "잘못된 정보를 입력하셨습니다." << endl;
+        cout << "입력하신 정보를 찾을 수 없습니다." << endl;
+    }
+}
+
+void db_findPW() {
+    db_init();
+    string user_id, name, phonenumber;
+
+    cout << "ID를 입력하세요. : ";
+    cin >> user_id;
+    cout << "ID를 찾을 이름을 입력하세요. : ";
+    cin >> name;
+
+    while (true) {
+        cout << "전화번호를 입력하세요. : ";
+        cin >> phonenumber;
+        if (phonenumber.length() != 13) {
+            cout << "▶ 전화번호를 다시 입력해주세요. (- 포함)" << endl;
+            continue;
+        }
+        break;
     }
 
-    //while (res->next()) {
-    //    if (res->getString("user_id") != NULL) {
-    //        cout << "ID : " << res->getString("user_id") << endl;
-    //    }
-    //    else if (res->getString("user_id") == NULL) {
-    //        cout << "잘못된 정보를 입력하셨습니다." << endl;
-    //    }
-    //}
+    pstmt = con->prepareStatement("SELECT user_id, name, pw, phonenumber FROM users WHERE phonenumber = ?");
+    pstmt->setString(1, phonenumber);
+    res = pstmt->executeQuery();
+
+    if (res->next()) {
+        string db_id = res->getString(1);
+        string db_name = res->getString(2);
+        string db_pw = res->getString(3);
+        string db_phonenumber = res->getString(4);
+
+        if (db_id == user_id && db_name == name && db_phonenumber == phonenumber) {
+            cout << user_id << "님의 비밀번호는 " << db_pw << " 입니다." << endl;
+        }
+        else {
+            cout << "입력하신 정보를 찾을 수 없습니다." << endl;
+            cout << "dddd" << endl;
+        }
+    }
+    else {
+        cout << "입력하신 정보를 찾을 수 없습니다." << endl;
+        cout << "djdk" << endl;
+    }
 }
+
 //
 //    // 데이터베이스 쿼리 실행
 //    // 데이터베이스에서 현재 비밀번호를 가져오는 쿼리
@@ -308,10 +388,8 @@ void server_init() {
     server_sock.user = "server";
     cout << "Server On" << endl;
 
-    db_countuser();
-    db_userlist();
-    cout << endl;
-    db_findID();
+    db_login();
+
 }
 void add_client() {
     SOCKADDR_IN addr = {};
@@ -358,9 +436,9 @@ void recv_msg(int idx) {
         }
     }
 }
+
 void del_client(int idx) {
     closesocket(sck_list[idx].sck);
     //sck_list.erase(sck_list.begin() + idx); // 배열에서 클라이언트를 삭제하게 될 경우 index가 달라지면서 런타임 오류 발생....ㅎ
     client_count--;
 }
-
