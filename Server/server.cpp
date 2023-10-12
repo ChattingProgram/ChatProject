@@ -193,7 +193,7 @@ void db_messageSend() {
 
     pstmt->setInt(1, number + 1); //메시지 번호
     pstmt->setString(2, "abcd"); // 보낸 사람 아이디
-    pstmt->setString(3, "안녕하세요"); // 콘탠츠, 메세지 내용
+    pstmt->setString(3, "hihihihi"); // 보낸 사람 아이디
     pstmt->setString(4, "2023-10-11"); // 날짜
     pstmt->setInt(5, 1); //챗 룸 넘버 
     pstmt->execute(); // 이거 있어야지 디비에 저장됨.
@@ -201,6 +201,7 @@ void db_messageSend() {
     cout << "메세지가 저장되었습니다." << endl;
     delete stmt;
     // MySQL Connector/C++ 정리
+}
 
 void db_selectQuery() {
     db_init();
@@ -368,6 +369,7 @@ void db_selectQuery_ver2() {
     // MySQL Connector/C++ 정리
     delete pstmt;
     delete con;
+}
   
 void db_userlist() {
     db_init();
@@ -590,7 +592,7 @@ void add_client() {
     std::thread th(recv_msg, client_count);
     // 다른 사람들로부터 오는 메시지를 계속해서 받을 수 있는 상태로 만들어 두기.
     client_count++; // client 수 증가.
-    cout << "[공지] 현재 접속자 수 : " << client_count << "명" << endl;
+    //cout << "[공지] 현재 접속자 수 : " << client_count << "명" << endl;
     send_msg(msg.c_str()); // c_str : string 타입을 const chqr* 타입으로 바꿔줌.
     th.join();
 }
