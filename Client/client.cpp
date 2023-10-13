@@ -20,6 +20,7 @@ string my_nick;
 string my_pw;
 string result;
 
+
 int chat_recv() {
     char buf[MAX_SIZE] = { };
     string msg;
@@ -27,7 +28,7 @@ int chat_recv() {
     while (1) {
         ZeroMemory(&buf, MAX_SIZE);
         if (recv(client_sock, buf, MAX_SIZE, 0) > 0) {
-            cout << "buf = " << buf << endl;
+            //cout << "buf = " << buf << endl;
 
             // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
             std::istringstream iss(buf);
@@ -51,25 +52,36 @@ int chat_recv() {
             //cout << "씨 아웃 버퍼 : " << buf << endl;;
 
 
-            if (tokens[0] != my_nick) {
-                if (tokens[0] == "server") { // 서버로부터 오는 메시지인 
+            if (tokens[1] != my_nick) {
+                if (tokens[1] == "server") { // 서버로부터 오는 메시지인 
                     //ss >> result; // 결과
-                    result = tokens[1];
-                    cout << "서버가 보낸거 : " << result << endl;
-                    // 여기에서 결과(result)를 사용하거나 처리
+                    if (tokens[0] == "1") {
+                        result = tokens[2];
+                        if (result == "1") {
+                            cout << "tokens[o] : " << tokens[0] << endl;
+                            cout << "로그인 성공" << endl;
+                            // 여기에서 결과(result)를 사용하거나 처리
+                        }
+                        else {
+                            cout << "로그인 실패" << endl;
+                        }
+                    }
+                    else {
+                        cout << "로그인 실패" << endl;
+                    }
                 }
                 else {
                     cout << buf << endl;
                 }
             }
 
-            if (tokens[0] == my_nick) {
-                if (tokens[0] == "server") {
+            if (tokens[1] == my_nick) {
+                if (tokens[1] == "server") {
                     cout << "여긴 무슨 예외가 와야함?." << endl;
                 }
                 else {
-                    cout <<" 메세지가 전송되었습니다." << endl;
-                    //cout << tokens[1] << " 에게 메세지가 전송되었습니다." << endl;
+                    //cout <<" 메세지가 전송되었습니다." << endl;
+                    cout << tokens[1] << " 에게 메세지가 전송되었습니다." << endl;
                 }
             }
 
