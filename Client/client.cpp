@@ -15,8 +15,52 @@ using std::endl;
 using std::string;
 
 SOCKET client_sock;
+string my_id;
 string my_nick;
 string my_pw;
+
+void client_login() {
+    cout << endl;
+    cout << "********************************************************" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "*                                                      *" << endl;
+    cout << "********************************************************" << endl;
+
+
+}
+
+//void client_login() {
+//    string User_request = "1";
+//    cout << "ID >> ";
+//    cin >> my_id;
+//    cout << "PW >> ";
+//    cin >> my_pw;
+//
+//    string login_msg = User_request + " " + my_id + " " + my_pw;
+//    send(client_sock, login_msg.c_str(), login_msg.length(), 0);
+//
+//
+//}
 
 int chat_recv() {
     char buf[MAX_SIZE] = { };
@@ -74,6 +118,7 @@ int main() {
         }
 
         std::thread th2(chat_recv);
+
 
         while (1) {
             string text;

@@ -15,6 +15,9 @@ using std::cin;
 using std::endl;
 using std::string;
 
+string login_user_id;
+string login_pw;
+
 // MY SQL 관련 정보를 저장하는 선언하는 곳 //
 const string server = "tcp://127.0.0.1:3306"; // 데이터베이스 주소
 const string username = "root"; // 데이터베이스 사용자
@@ -40,6 +43,7 @@ void server_init(); // socket 초기화 함수. socket(), bind(), listen() 함수 실행�
 void add_client(); // 소켓에 연결을 시도하는 client를 추가(accept)하는 함수. client accept() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 void send_msg(const char* msg); // send() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 void recv_msg(int idx); // recv() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
+
 
 // 디비 구분
 void del_client(int idx); // 소켓에 연결되어 있는 client를 제거하는 함수. closesocket() 실행됨. 자세한 내용은 함수 구현부에서 확인.
@@ -235,31 +239,103 @@ void db_selectQuery() {
 }
 
 void db_login() {
+    SOCKADDR_IN addr = {};
+    int addrsize = sizeof(addr);
+    char buf[MAX_SIZE] = { };
+    ZeroMemory(&addr, addrsize); // addr의 메모리 영역을 0으로 초기화
+    SOCKET_INFO client = {};
+    client.sck = accept(server_sock.sck, (sockaddr*)&addr, &addrsize);
+    recv(client.sck, buf, MAX_SIZE, 0);
+    // Winsock2의 recv 함수. client가 보낸 닉네임을 받음.
+    cout << "buf" << buf << endl;
+
+    // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
+    std::istringstream iss(buf);
+    std::vector<std::string> tokens;
+    std::string token;
+
+    while (iss >> token) {
+        tokens.push_back(token);
+    }
+
+    string user_request = tokens[0]; // 요청 작업 번호
+    string user_id = tokens[1]; // 아이디
+    string pw = tokens[2]; // 비밀번호
+
     db_init();
 
-    string user_id, pw;
-
-    cout << "ID를 입력하세요. : ";
-    cin >> user_id;
-    cout << "비밀번호를 입력하세요. : ";
-    cin >> pw;
-
-    pstmt = con->prepareStatement("SELECT user_id, pw FROM users WHERE user_id = ?");
+    pstmt = con->prepareStatement("SELECT user_id, name, pw FROM users WHERE user_id = ?");
     pstmt->setString(1, user_id);
     res = pstmt->executeQuery();
 
+    // 결과가 있다면
     if (res->next()) {
-        string db_id = res->getString(1);
-        string db_pw = res->getString(2);
+        string db_id = res->getString("user_id"); // 데이터베이스의 id 저장
+        string db_pw = res->getString("pw"); // 데이터베이스의 비밀번호 저장
+        string db_name = res->getString("name"); // 데이터베이스의 이름 저장
 
-        if (db_id == user_id && db_pw == pw) {
-            cout << " ▶ 로그인 성공! " << endl;
+        // 데이터베이스에 저장된 데이터와 입력받은 데이터가 동일하다면
+        if (db_id == user_id && db_pw == pw) { 
+            string msg = " ※ 로그인 성공 ! ";
+            cout << msg << endl;
+            send_msg(msg.c_str());
         }
-        else {
-            cout << " ▶ 로그인 실패!  " << endl;
+        else if (db_id != user_id || db_pw != pw) {
+            string msg = " ※ 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
+            cout << msg << endl;
+            send_msg(msg.c_str());
         }
     }
+    else {
+        string msg = " ※ 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
+        cout << msg << endl;
+        send_msg(msg.c_str());
+    }
+    //if (res->next()) {
+    //    string db_id = res->getString("user_id");
+    //    string db_pw = res->getString("pw");
+    //    string db_name = res->getString("name");
+
+    //    cout << db_id << endl;
+    //    cout << db_pw << endl;
+    //    cout << db_name << endl;
+
+    //    if (res->getString("user_id") == user_id && res->getString("pw") == pw) {
+    //        string msg = " ※ 로그인 성공 ! ";
+    //        cout << msg << endl;
+    //        send_msg(msg.c_str());
+    //    }
+    //    else {
+    //        string msg = " ※ 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
+    //        cout << msg << endl;
+    //        send_msg(msg.c_str());
+    //    }
+    //}
+
+    //cout << "ID : ";
+    //cin >> login_user_id;
+    //cout << "PW : ";
+    //cin >> login_pw;
+
+    //pstmt = con->prepareStatement("SELECT user_id, pw, name FROM users WHERE user_id = ?");
+    //pstmt->setString(1, login_user_id);
+    //res = pstmt->executeQuery();
+
+    //if (res->next()) {
+    //    string db_id = res->getString(1); // 데이터베이스의 user_id
+    //    string db_pw = res->getString(2); // 데이터베이스의 pw
+    //    string db_name = res->getString(3); // 데이터베이스의 name
+    //    
+    //    if (db_id == login_user_id && db_pw == login_pw) {
+    //        cout << endl << " ※ 로그인 성공! " << endl;
+    //    }
+    //    else {
+    //        cout << " ※ 로그인 실패!  " << endl;
+    //        cout << " ※ 아이디 또는 비밀번호를 다시 확인해주세요." << endl;
+    //    }
+    //}
 }
+
 
 void db_countuser() {
     db_init();
@@ -456,12 +532,10 @@ void db_findPW() {
         }
         else {
             cout << "입력하신 정보를 찾을 수 없습니다." << endl;
-            cout << "dddd" << endl;
         }
     }
     else {
         cout << "입력하신 정보를 찾을 수 없습니다." << endl;
-        cout << "djdk" << endl;
     }
 }
 
@@ -573,8 +647,12 @@ void server_init() {
     listen(server_sock.sck, SOMAXCONN); // 소켓을 대기 상태로 기다린다.
     server_sock.user = "server";
     cout << "Server On" << endl;
+    
+    db_login();
+
 
 }
+
 void add_client() {
     SOCKADDR_IN addr = {};
     int addrsize = sizeof(addr);
@@ -600,7 +678,7 @@ void add_client() {
     cout << " tokens[0] 은 " << tokens[0] << endl;
 
 
-    string msg = "[공지] " + new_client.user + " 님이 입장했습니다.";
+    string msg = "[공지] " + tokens[1] + " 님이 입장했습니다.";
     cout << msg << endl;
     sck_list.push_back(new_client); // client 정보를 답는 sck_list 배열에 새로운 client 추가
     std::thread th(recv_msg, client_count);
@@ -635,6 +713,7 @@ void recv_msg(int idx) {
         }
     }
 }
+
 
 void del_client(int idx) {
     closesocket(sck_list[idx].sck);
