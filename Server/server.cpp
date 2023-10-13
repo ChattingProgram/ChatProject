@@ -6,6 +6,7 @@
 #include <vector>
 #include <mysql/jdbc.h> // C++하고 MYSQL을 연결하기 위해 선언.
 #include <sstream> // 요구사항 분리해서 저장하기 위해 필요함.
+#include <WS2tcpip.h> // 소켓 전송을 위해 사용
 
 #define MAX_SIZE 1024
 #define MAX_CLIENT 3
@@ -28,6 +29,8 @@ sql::PreparedStatement* pstmt;
 sql::ResultSet* res; //결과값을 위해
 sql::ResultSet* res2; //결과값을 위해
 
+SOCKET client_sock;
+
 struct SOCKET_INFO { // 연결된 소켓 정보에 대한 틀 생성
     SOCKET sck;
     string user;
@@ -40,6 +43,10 @@ void server_init(); // socket 초기화 함수. socket(), bind(), listen() 함수 실행�
 void add_client(); // 소켓에 연결을 시도하는 client를 추가(accept)하는 함수. client accept() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 void send_msg(const char* msg); // send() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 void recv_msg(int idx); // recv() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
+
+void dm_send_msg(const string& sender, const char* msg, const string& recipientUser);
+void dm_send_result(const string& sender, int variable, const string& recipientUser);
+int chat_recv();
 
 // 디비 구분
 void del_client(int idx); // 소켓에 연결되어 있는 client를 제거하는 함수. closesocket() 실행됨. 자세한 내용은 함수 구현부에서 확인.
@@ -573,6 +580,7 @@ void server_init() {
     listen(server_sock.sck, SOMAXCONN); // 소켓을 대기 상태로 기다린다.
     server_sock.user = "server";
     cout << "Server On" << endl;
+    
 
 }
 void add_client() {
@@ -584,7 +592,7 @@ void add_client() {
     new_client.sck = accept(server_sock.sck, (sockaddr*)&addr, &addrsize);
     recv(new_client.sck, buf, MAX_SIZE, 0);
     // Winsock2의 recv 함수. client가 보낸 닉네임을 받음.
-    new_client.user = string(buf);
+    //new_client.user = string(buf);
     cout << "buf" << buf << endl;
 
     // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
@@ -598,23 +606,72 @@ void add_client() {
 
     cout << " user_request is tokens[0]. =  " << tokens[0] << endl;
     cout << " tokens[0] 은 " << tokens[0] << endl;
-
+    
+    new_client.user = tokens[1];
 
     string msg = "[공지] " + new_client.user + " 님이 입장했습니다.";
     cout << msg << endl;
+
+    
     sck_list.push_back(new_client); // client 정보를 답는 sck_list 배열에 새로운 client 추가
     std::thread th(recv_msg, client_count);
-    // 다른 사람들로부터 오는 메시지를 계속해서 받을 수 있는 상태로 만들어 두기.
     client_count++; // client 수 증가.
-    //cout << "[공지] 현재 접속자 수 : " << client_count << "명" << endl;
+    cout << "내용 전송 테스트1" << endl;
+
+    // 예를 들어, "Alice" 사용자에게 메시지를 보내려면
+    string message1 = "Hello!";
+    string message = message1 + " " + tokens[1];
+
+    for (int i = 0; i < client_count; i++) {
+        cout << "유저 유저" << sck_list[i].user << endl;
+    }
+
+    //dm_send_msg(server, message.c_str(), tokens[1]);
+    int result = 12345;
+    dm_send_result("server", result, tokens[1]);
+
+    cout << "내용 전송 테스트2" << endl;
+    // 다른 사람들로부터 오는 메시지를 계속해서 받을 수 있는 상태로 만들어 두기.
+    
+    cout << "[공지] 현재 접속자 수 : " << client_count << "명" << endl;
     send_msg(msg.c_str()); // c_str : string 타입을 const chqr* 타입으로 바꿔줌.
     th.join();
+
+
 }
+//string msg = User_request + " " + my_nick + " " + my_pw;
+
+void dm_send_result(const string& sender, int variable, const string& recipientUser) {
+    string vari  = std::to_string(variable);
+    string result = sender + " " + vari + " " + recipientUser;
+    for (int i = 0; i < client_count; i++) {
+        if (sck_list[i].user == recipientUser) {
+            send(sck_list[i].sck, result.c_str(), result.length(), 0);
+            return; // 특정 사용자에게 메시지를 보내면 함수 종료
+        }
+    }
+
+    // 사용자를 찾지 못한 경우, 에러 메시지 출력 또는 다른 처리를 추가할 수 있습니다.
+}
+
+void dm_send_msg(const string& sender, const char* msg, const string& recipientUser) {
+    for (int i = 0; i < client_count; i++) {
+        if (sck_list[i].user == recipientUser) {
+            send(sck_list[i].sck, msg, MAX_SIZE, 0);
+            return; // 특정 사용자에게 메시지를 보내면 함수 종료
+        }
+    }
+
+    // 사용자를 찾지 못한 경우, 에러 메시지 출력 또는 다른 처리를 추가할 수 있습니다.
+}
+
+
 void send_msg(const char* msg) {
     for (int i = 0; i < client_count; i++) { // 접속해 있는 모든 client에게 메시지 전송
         send(sck_list[i].sck, msg, MAX_SIZE, 0);
     }
 }
+
 void recv_msg(int idx) {
     char buf[MAX_SIZE] = { };
     string msg = "";
