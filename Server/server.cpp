@@ -38,6 +38,10 @@ struct SOCKET_INFO { // 연결된 소켓 정보에 대한 틀 생성
 
 std::vector<SOCKET_INFO> sck_list; // 연결된 클라이언트 소켓들을 저장할 배열 선언.
 SOCKET_INFO server_sock; // 서버 소켓에 대한 정보를 저장할 변수 선언.
+
+std::vector<std::string> tokens; // 소켓에 대한 정보를 담기 위한 토큰 배열
+std::string token; //토큰 배열
+
 int client_count = 0; // 현재 접속해 있는 클라이언트를 count 할 변수 선언.
 void server_init(); // socket 초기화 함수. socket(), bind(), listen() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 void add_client(); // 소켓에 연결을 시도하는 client를 추가(accept)하는 함수. client accept() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
@@ -242,6 +246,42 @@ void db_selectQuery() {
 }
 
 void db_login() {
+
+    pstmt = con->prepareStatement("SELECT user_id, name, pw FROM users WHERE user_id = ?");
+    pstmt->setString(1, tokens[1]);
+    res = pstmt->executeQuery();
+
+    // 결과가 있다면
+    //dm_send_result(const string& sender, int variable, const string& recipientUser)
+    if (res->next()) {
+        string db_id = res->getString("user_id"); // 데이터베이스의 id 저장
+        string db_pw = res->getString("pw"); // 데이터베이스의 비밀번호 저장
+        string db_name = res->getString("name"); // 데이터베이스의 이름 저장
+
+        // 데이터베이스에 저장된 데이터와 입력받은 데이터가 동일하다면
+        if (db_id == tokens[1] && db_pw == tokens[2]) {
+            string msg = "※로그인 성공!";
+            int result = 1;
+            int server_request = 1;
+            dm_send_result(server_request, "server", result, tokens[1]);
+        }
+        else if (db_id != tokens[1] || db_pw != tokens[2]) {
+            string msg = " 636 line ※ 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
+            int result = 0;
+            int server_request = 2;
+            dm_send_result(server_request, "server", result, tokens[1]);
+        }
+    }
+    else {
+        string msg = " ※ 642line 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
+        int result = 54321;
+        int server_request = 2;
+        dm_send_result(server_request, "server", result, tokens[1]);
+    }
+}
+
+//임시 처리
+void db_login_ver2() { 
     SOCKADDR_IN addr = {};
     int addrsize = sizeof(addr);
     char buf[MAX_SIZE] = { };
@@ -611,20 +651,23 @@ void add_client() {
     recv(new_client.sck, buf, MAX_SIZE, 0);
     // Winsock2의 recv 함수. client가 보낸 닉네임을 받음.
     //new_client.user = string(buf);
-    cout << "buf" << buf << endl;
+    //cout << "buf" << buf << endl;
 
     // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
     std::istringstream iss(buf);
-    std::vector<std::string> tokens;
-    std::string token;
+
 
     while (iss >> token) {
         tokens.push_back(token);
     }
 
+    //cout << " tokens[0] 은 " << tokens[0] << endl;
 
-    cout << " user_request is tokens[0]. =  " << tokens[0] << endl;
-    cout << " tokens[0] 은 " << tokens[0] << endl;
+    if (tokens[0] == "1") { cout << tokens[1] << " 로 부터 로그인 요청이 들어왔습니다." << endl; };
+    if (tokens[0] == "2") { cout << tokens[2] << " 로 부터 [수정 필요] 요청이 들어왔습니다." << endl; };
+    if (tokens[0] == "3") { cout << tokens[3] << " 로 부터 [수정 필요] 요청이 들어왔습니다." << endl; };
+    if (tokens[0] == "4") { cout << tokens[4] << " 로 부터 [수정 필요] 요청이 들어왔습니다." << endl; };
+    if (tokens[0] == "5") { cout << tokens[5] << " 로 부터 [수정 필요] 요청이 들어왔습니다." << endl; };
     
     new_client.user = tokens[1];
 
@@ -637,42 +680,7 @@ void add_client() {
     client_count++; // client 수 증가.
 
     db_init();
-    
-    cout << tokens[0] << endl;
-    cout << tokens[1] << endl;
-    cout << tokens[2] << endl;
-
-    pstmt = con->prepareStatement("SELECT user_id, name, pw FROM users WHERE user_id = ?");
-    pstmt->setString(1, tokens[1]);
-    res = pstmt->executeQuery();
-
-    // 결과가 있다면
-    //dm_send_result(const string& sender, int variable, const string& recipientUser)
-    if (res->next()) {
-        string db_id = res->getString("user_id"); // 데이터베이스의 id 저장
-        string db_pw = res->getString("pw"); // 데이터베이스의 비밀번호 저장
-        string db_name = res->getString("name"); // 데이터베이스의 이름 저장
-
-        // 데이터베이스에 저장된 데이터와 입력받은 데이터가 동일하다면
-        if (db_id == tokens[1] && db_pw == tokens[2]) {
-            string msg = "※로그인 성공!";
-            int result = 1;
-            int server_request = 1;
-            dm_send_result(server_request, "server", result, tokens[1]);
-        }
-        else if (db_id != tokens[1] || db_pw != tokens[2]) {
-            string msg = " 636 line ※ 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
-            int result = 0;
-            int server_request = 2;
-            dm_send_result(server_request, "server", result, tokens[1]);
-        }
-    }
-    else {
-        string msg = " ※ 642line 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
-        int result = 54321;
-        int server_request = 2;
-        dm_send_result(server_request, "server", result, tokens[1]);
-    }
+    db_login();
 
     //dm_send_msg(server, message.c_str(), tokens[1]);
     //int result = 12345;
