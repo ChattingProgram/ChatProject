@@ -31,9 +31,9 @@ DB 테이블, 유저 사용 흐름도, 인터페이스 및 기능 설계 및 기
 
 MYSQL & VISUAL STUDIO 연결 및 CPP 쿼리문 작성
 
-민 : db_roomUserNameQuery(), db_messageSend(), db_join(), db_UserEdit()
+db_roomUserNameQuery(), db_messageSend(), db_join(), db_UserEdit()
  
-혁 : db_login(), db_countuser(), db_userlist(), db_findID(), db_callMessage()
+db_login(), db_countuser(), db_userlist(), db_findID(), db_callMessage()
 
 
 -------☆-----------☆-------
@@ -68,11 +68,11 @@ MYSQL & VISUAL STUDIO 연결 및 CPP 쿼리문 작성
 
 ✨ 2023-10-16 (MON):
 
-1. R
+1. 소켓 통신 코드 리팩토링 (chat_recv, add_client)
 
-2. R
+2. id,pw 찾기 기능 추가
 
-3. R
+3. join 기능 추가
 
 -------☆-----------☆-------
 
