@@ -1,10 +1,15 @@
 ﻿  client.cpp
-C:\Users\Lenovo\Desktop\github\ChatProject\Client\client.cpp(141,58): warning C4267: '인수': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-C:\Users\Lenovo\Desktop\github\ChatProject\Client\client.cpp(157,45): warning C4267: '인수': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\MHJ\Desktop\github\ChatProject\Client\client.cpp(256,58): warning C4267: '인수': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\MHJ\Desktop\github\ChatProject\Client\client.cpp(272,45): warning C4267: '인수': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\MHJ\Desktop\github\ChatProject\Client\client.cpp(311,58): warning C4267: '인수': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\MHJ\Desktop\github\ChatProject\Client\client.cpp(330,45): warning C4267: '인수': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\MHJ\Desktop\github\ChatProject\Client\client.cpp(370,58): warning C4267: '인수': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\MHJ\Desktop\github\ChatProject\Client\client.cpp(385,45): warning C4267: '인수': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
   코드를 생성하고 있습니다.
-C:\Users\Lenovo\Desktop\github\ChatProject\Client\client.cpp(117): warning C4715: 'chat_recv': 모든 제어 경로에서 값을 반환하지는 않습니다.
-  3 of 276 functions ( 1.1%) were compiled, the rest were copied from previous compilation.
-    0 functions were new in current compilation
-    23 functions had inline decision re-evaluated but remain unchanged
+  Previous IPDB and IOBJ mismatch, fall back to full compilation.
+C:\Users\MHJ\Desktop\github\ChatProject\Client\menu.cpp(31): warning C4715: 'keyControl': 모든 제어 경로에서 값을 반환하지는 않습니다.
+C:\Users\MHJ\Desktop\github\ChatProject\Client\client.cpp(177): warning C4715: 'findID_recv': 모든 제어 경로에서 값을 반환하지는 않습니다.
+C:\Users\MHJ\Desktop\github\ChatProject\Client\client.cpp(232): warning C4715: 'findPW_recv': 모든 제어 경로에서 값을 반환하지는 않습니다.
+  All 285 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
   코드를 생성했습니다.
-  client.vcxproj -> C:\Users\Lenovo\Desktop\github\ChatProject\x64\Release\client.exe
+  client.vcxproj -> C:\Users\MHJ\Desktop\github\ChatProject\x64\Release\client.exe

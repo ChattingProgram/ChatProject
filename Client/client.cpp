@@ -16,9 +16,8 @@
 
 SOCKET client_sock;
 SOCKADDR_IN client_addr = {};
-string my_nick;
+string my_id, my_nick, my_pw, my_name, my_phonenumber;
 string login_User_nick; //로그인한 유저 이름 아이디 저장
-string my_pw;
 string result;
 
 WSADATA wsa;
@@ -29,7 +28,11 @@ int code = WSAStartup(MAKEWORD(2, 2), &wsa);
 
 void login(); // 로그인 
 bool login_flag = false;
+bool findID_flag = false;
+bool findPW_flag = false;
 void socket_init(); // 소켓정보 저장
+void findID(); // 아이디 찾기
+void findPW(); // 패스워드 찾기
 
 int chat_recv() {
     char buf[MAX_SIZE] = { };
@@ -84,10 +87,12 @@ int chat_recv() {
                                                        
                         }
                         else {
+                            login_flag = false; //이걸 해야지 로그인 여부 결정할 수 있음.
                             cout << "로그인 실패" << endl;
                         }
                     }
                     else {
+                        login_flag = false; //이걸 해야지 로그인 여부 결정할 수 있음.
                         cout << "로그인 실패" << endl;
                     }
                 }
@@ -97,18 +102,14 @@ int chat_recv() {
             }
 
             if (tokens[1] == my_nick) {
-                if (tokens[1] == "server") {
-                    cout << "여긴 무슨 예외가 와야함?." << endl;
-                }
-                else {
                     //cout <<" 메세지가 전송되었습니다." << endl;
                     //cout << tokens[1] << " 에게 메세지가 전송되었습니다." << endl;
                     cout << login_User_nick << " 님 로그인 되었습니다." << endl;
                     cout << " 4초 뒤에 메인 화면으로 갑니다." << endl;
                     Sleep(4000);
                     login_flag = true; //이걸 해야지 로그인 여부 결정할 수 있음.
-                    break;
-                }
+                    //break;
+                
             }
 
 
@@ -116,6 +117,116 @@ int chat_recv() {
         else {
             cout << "Server Off" << endl;
             return -1;
+        }
+    }
+}
+
+int findID_recv() {
+    char buf[MAX_SIZE] = { };
+    string msg;
+
+    while (1) {
+        ZeroMemory(&buf, MAX_SIZE);
+        if (recv(client_sock, buf, MAX_SIZE, 0) > 0) {
+            //cout << "buf = " << buf << endl;
+
+            // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
+            std::istringstream iss(buf);
+            std::vector<std::string> tokens;
+            std::string token;
+
+            while (iss >> token) {
+                tokens.push_back(token);
+            }
+
+            // ( [0] : 요청 결과 (1=로그인 등) / [1] : 보낸 사람 ( 왠만해선 "server") / [2] : 결과값 (ID 찾기 성공 여부) / [3] : 받는 사람 / [4] : 결과(찾은 ID) )
+            if (tokens[1] == "server") { // 서버로부터 오는 메시지인 
+                //ss >> result; // 결과
+                if (tokens[0] == "2") {
+                    result = tokens[2];
+                    if (result == "1") {
+                        cout << " ※ 아이디 찾기 성공!" << endl;
+                        string find_User_id = tokens[4];
+                        cout << tokens[3] << " 님의 아이디는 : " << find_User_id << " 입니다." << endl;
+                        cout << "5초 후 메인 화면으로 돌아갑니다." << endl;
+                        findID_flag = true;
+                        Sleep(5000);
+                        break;
+                        // 여기에서 결과(result)를 사용하거나 처리
+                    }
+                    else {
+                        findID_flag = false; // ID 찾기 성공 여부
+                        cout << "# 159 // ID 찾기 실패. 입력한 정보를 다시 확인해주세요." << endl;
+                        Sleep(5000);
+                        break;
+                    }
+                }
+                else {
+                    findID_flag = false; // ID 찾기 성공 여부
+                    cout << "# 166 // ID 찾기 실패. 입력한 정보를 다시 확인해주세요." << endl;
+                    Sleep(5000);
+                    break;
+                }
+            }
+            else {
+                cout << buf << endl;
+            }
+        }
+
+    }
+}
+
+int findPW_recv() {
+    char buf[MAX_SIZE] = { };
+    string msg;
+
+    while (1) {
+        ZeroMemory(&buf, MAX_SIZE);
+        if (recv(client_sock, buf, MAX_SIZE, 0) > 0) {
+            //cout << "buf = " << buf << endl;
+
+            // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
+            std::istringstream iss(buf);
+            std::vector<std::string> tokens;
+            std::string token;
+
+            while (iss >> token) {
+                tokens.push_back(token);
+            }
+
+            // ( [0] : 요청 결과 (1=로그인 등) / [1] : 보낸 사람 ( 왠만해선 "server") / [2] : 결과값 (ID 찾기 성공 여부) / [3] : 받는 사람 / [4] : 결과(찾은 ID) )
+            if (tokens[1] == "server") { // 서버로부터 오는 메시지인 
+                //ss >> result; // 결과
+                if (tokens[0] == "3") {
+                    result = tokens[2];
+                    if (result == "1") {
+                        cout << " ※ 비밀번호 찾기 성공!" << endl;
+                        string find_User_pw = tokens[4];
+                        cout << tokens[3] << " 님의 비밀번호는 : " << find_User_pw << " 입니다." << endl;
+                        cout << "5초 후 메인 화면으로 돌아갑니다." << endl;
+                        findPW_flag = true;
+                        Sleep(5000);
+                        break;
+                        // 여기에서 결과(result)를 사용하거나 처리
+                    }
+                    else {
+                        findPW_flag = false; // ID 찾기 성공 여부
+                        cout << "# 170 // PW 찾기 실패. 입력한 정보를 다시 확인해주세요." << endl;
+                        Sleep(5000);
+                        break;
+                    }
+                }
+                else {
+                    findPW_flag = false; // ID 찾기 성공 여부
+                    cout << "# 176 // PW 찾기 실패. 입력한 정보를 다시 확인해주세요." << endl;
+                    Sleep(5000);
+                    break;
+                }
+            }
+            else {
+                cout << buf << endl;
+            }
+
         }
     }
 }
@@ -131,7 +242,7 @@ void login() {
         }
 
         string User_request = "1";
-        cout << "아아디 입력 >> ";
+        cout << "아이디 입력 >> ";
         cin >> my_nick;
         cout << "비밀번호 입력 >> ";
         cin >> my_pw;       
@@ -170,6 +281,117 @@ void login() {
 
 }
 
+void findID() {
+    system("cls");
+
+    while (!code) {
+
+        if (findID_flag == true) {
+            break;
+        }
+
+        string User_request = "2"; // ID 찾기 번호?
+        cout << "이름 입력 >> ";
+        cin >> my_name;
+
+        while(true) {
+            cout << "전화번호 입력(- 포함) >> ";
+            cin >> my_phonenumber;
+
+            if (my_phonenumber.length() != 13) {
+                cout << "※ 전화번호를 다시 입력해주세요. (- 포함)" << endl;
+                continue;
+            }
+            break;
+        }
+        
+        while (1) {
+            if (!connect(client_sock, (SOCKADDR*)&client_addr, sizeof(client_addr))) {
+                string msg = User_request + " " + my_name + " " + my_phonenumber;
+                send(client_sock, msg.c_str(), msg.length(), 0);
+                break;
+            }
+        }
+
+        cout << User_request << endl;
+        cout << my_name << endl;
+        cout << my_phonenumber << endl;
+
+        std::thread th2(findID_recv);
+        //if (keyControl() == SUBMIT) { //스페이스바 누르기 전 까지는 이 정보창에 머무릅니다.
+        //    login_flag = false;
+        //}
+
+        while (1) {
+            break;
+            string text;
+            std::getline(cin, text);
+            const char* buffer = text.c_str(); // string형을 char* 타입으로 변환       
+            send(client_sock, buffer, strlen(buffer), 0);
+        }
+
+        th2.join();
+        //closesocket(client_sock); //이거 주석처리 안하면 페이지 전환시 (서버에서) 로그 아웃 처리됨
+
+    }
+
+    //WSACleanup(); //이거 주석처리 안하면 페이지 전환시 (서버에서) 로그 아웃 처리됨
+}
+
+void findPW() {
+    system("cls");
+
+    while (!code) {
+
+        if (findPW_flag == true) {
+            break;
+        }
+
+        string User_request = "3"; // PW 찾기 번호?
+        cout << "ID 입력 >> ";
+        cin >> my_id;        
+        cout << "이름 입력 >> ";
+        cin >> my_name;
+
+        while (true) {
+            cout << "전화번호 입력(- 포함) >> ";
+            cin >> my_phonenumber;
+
+            if (my_phonenumber.length() != 13) {
+                cout << "※ 전화번호를 다시 입력해주세요. (- 포함)" << endl;
+                continue;
+            }
+            break;
+        }
+
+        while (1) {
+            if (!connect(client_sock, (SOCKADDR*)&client_addr, sizeof(client_addr))) {
+                string msg = User_request + " " + my_id + " " + my_name + " " + my_phonenumber;
+                send(client_sock, msg.c_str(), msg.length(), 0);
+                break;
+            }
+        }
+
+        std::thread th2(findPW_recv);
+        //if (keyControl() == SUBMIT) { //스페이스바 누르기 전 까지는 이 정보창에 머무릅니다.
+        //    login_flag = false;
+        //}
+
+        while (1) {
+            break;
+            string text;
+            std::getline(cin, text);
+            const char* buffer = text.c_str(); // string형을 char* 타입으로 변환       
+            send(client_sock, buffer, strlen(buffer), 0);
+        }
+
+        th2.join();
+        //closesocket(client_sock); //이거 주석처리 안하면 페이지 전환시 (서버에서) 로그 아웃 처리됨
+
+    }
+
+    //WSACleanup(); //이거 주석처리 안하면 페이지 전환시 (서버에서) 로그 아웃 처리됨
+}
 void socket_init() {
 
     client_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP); // 
@@ -200,9 +422,12 @@ int main()
             login(); // 로그인 함수 실행
         }
         else if (menuCode == 1) {
-            infoGame();// 게임정보
+            findID();// 아이디 찾기
         }
         else if (menuCode == 2) {
+            findPW();// 비밀번호 찾기
+        }
+        else if (menuCode == 3) {
             cout << "\n\n\n";
             WSACleanup();
             return 0; // 게임 종료
