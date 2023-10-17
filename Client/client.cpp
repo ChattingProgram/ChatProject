@@ -63,7 +63,7 @@ int chat_recv() {
 
             //void dm_send_result(int server_request, const string & sender, int variable, const string & recipientUser)
             //서버로부터 오는 메시지 형태
-            // ( [0] : 요청 결과 (1=로그인 등) / [1] : 보낸 사람 ( 왠만해선 "server") / [2] : 결과값 (이걸로 로그인 성공 여부) / [3] : 받는 사람 )
+            // ( [0] : 요청 결과 (1=로그인 등) / [1] : 보낸 사람 ( 왠만해선 "server") / [2] : 결과값 (이걸로 로그인 성공 여부) / [3] : 받는 사람 / [4] 디비 유저 이름 )
             if (tokens[1] != my_nick) {
                 if (tokens[1] == "server") { // 서버로부터 오는 메시지인 
                     //ss >> result; // 결과
@@ -77,7 +77,8 @@ int chat_recv() {
                             cout << " tokens[1] 은 " << tokens[1] << endl;
                             cout << " tokens[2] 은 " << tokens[2] << endl;
                             cout << " tokens[3] 은 " << tokens[3] << endl;
-                            login_User_nick = tokens[3];
+                            cout << " tokens[4] 은 " << tokens[4] << endl;
+                            login_User_nick = tokens[4];
                             cout << " 내 닉네임 저장 => " << login_User_nick << endl;
                             cout << "==============테스트 정보 출력=============" << endl;
                             // 여기에서 결과(result)를 사용하거나 처리
@@ -176,11 +177,12 @@ void socket_init() {
     InetPton(AF_INET, TEXT("127.0.0.1"), &client_addr.sin_addr);
 
     while (1) {
-        if (!connect(client_sock, (SOCKADDR*)&client_addr, sizeof(client_addr))) { // 위에 설정한 정보에 해당하는 server로 연결!
-            cout << "Server Connect" << endl;
+        if (!connect(client_sock, (SOCKADDR*)&client_addr, sizeof(client_addr))) { // 위에 설정한 정보에 해당하는 server로 연결!            
+            cout << "***SYSTEM MESSAGE : Server Connect***" << endl;
             string msg = "auto produce";
             send(client_sock, msg.c_str(), msg.length(), 0); // 연결에 성공하면 client 가 입력한 닉네임을 서버로 전송
-            //send(client_sock, my_pw.c_str(), my_pw.length(), 0);                
+            //send(client_sock, my_pw.c_str(), my_pw.length(), 0);          
+            
             break;
         }
         cout << "Connecting..." << endl;
@@ -198,7 +200,7 @@ int main()
 
         //로그인 성공했을 때만 트루로 바꿔줬으므로, 로그인 됐을 때만 아이디가 출력됨.
         if (login_flag == true) { 
-            cout << login_User_nick << " 님 환영합니다." << endl;
+            cout << "로그인 성공!" << login_User_nick << " 님 환영합니다." << endl;
         }
         int menuCode = MenuDraw(); // 게임시작 버튼 생성 및 y좌표 값 저장
         //printf("메뉴 코드는 %d ", menuCode); <<로 y좌표 확인 가능
