@@ -359,31 +359,61 @@ void db_countuser() {
 void db_join() {
     db_init();
     // 데이터베이스 쿼리 실행
+
+    string User_input_id, User_input_name, User_input_pw, User_input_phonenumber, User_input_nickname;
+
+    while (1) {
+        cout << "아이디를 입력하세요. (영문 10자리 이하) : ";
+        cin >> User_input_id;
+
+        pstmt = con->prepareStatement("SELECT user_id, name, pw, phonenumber, nickname, friend_name FROM users WHERE user_id = ?");
+        pstmt->setString(1, User_input_id);
+        res = pstmt->executeQuery();
+
+        if (res->next()) {
+            cout << "이미 존재하는 ID 입니다. 다시 입력해주세요." << endl;
+            continue;
+        }
+        else {
+            cout << "이름을 입력하세요. (10자리 이하) : ";
+            cin >> User_input_name;
+
+            cout << "비밀번호를 입력하세요. (10자리 이하) : ";
+            cin >> User_input_pw;
+
+            cout << "전화번호를 입력하세요. (- 포함) : ";
+            cin >> User_input_phonenumber;
+
+            cout << "닉네임을 입력하세요. (영문 10자리 이하) : ";
+            cin >> User_input_nickname;
+
+            break;
+        }
+    }
+
     stmt = con->createStatement();
-    pstmt = con->prepareStatement("INSERT INTO users (user_id, name, pw, nickname, friend_name) values(?,?,?,?,?)"); // INSERT
+    pstmt = con->prepareStatement("INSERT INTO users (user_id, name, pw, phonenumber, nickname, friend_name) values(?,?,?,?,?,?)"); // INSERT
+    res = pstmt->executeQuery();
 
-    string User_input;
-    cout << "아이디를 입력하세요. : ";
-    cin >> User_input;
-    pstmt->setString(1, User_input); //아이디
-
-    cout << "이름을 입력하세요. : ";
-    cin >> User_input;
-    pstmt->setString(2, User_input); // 이름
-
-    cout << "비밀번호을 입력하세요. : ";
-    cin >> User_input;
-    pstmt->setString(3, User_input); // 비밀번호
-
-    cout << "닉네임을 입력하세요. : ";
-    cin >> User_input;
-    pstmt->setString(4, User_input); // 날짜
-
-    pstmt->setString(5, " "); //친구목록
+    pstmt->setString(1, User_input_id); //아이디
+    pstmt->setString(2, User_input_name); // 이름
+    pstmt->setString(3, User_input_pw); // 비밀번호
+    pstmt->setString(4, User_input_phonenumber); // 전화번호
+    pstmt->setString(5, User_input_nickname); //친구목록
+    pstmt->setString(6, " "); //친구목록
 
     pstmt->execute(); // 이거 있어야지 디비에 저장됨.
 
-    cout << "Finished inserting table" << endl;
+    while (res->next()) {
+        cout << res->getString("user_id") << endl;
+        cout << res->getString("name") << endl;
+        cout << res->getString("pw") << endl;
+        cout << res->getString("phonenumber") << endl;
+        cout << res->getString("nickname") << endl;
+
+    }
+
+    cout << "계정 생성이 완료되었습니다." << endl;
 
 
 }
@@ -725,6 +755,7 @@ void server_init() {
     server_sock.user = "server";
     cout << "Server On" << endl;
     
+    db_join();
 }
 void add_client() {
     SOCKADDR_IN addr = {};

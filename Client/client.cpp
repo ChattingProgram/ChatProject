@@ -392,6 +392,18 @@ void findPW() {
 
     //WSACleanup(); //이거 주석처리 안하면 페이지 전환시 (서버에서) 로그 아웃 처리됨
 }
+
+void join() {
+    system("cls");
+
+
+    while (!code) {
+        string User_request = "4"; // 회원가입 번호
+        cout << "아이디를 입력하세요. (영문 10자리 이하) : ";
+        cin >> my_id;
+
+    }
+}
 void socket_init() {
 
     client_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP); // 
