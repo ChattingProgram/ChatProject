@@ -54,7 +54,7 @@ void send_msg(const char* msg); // send() 함수 실행됨. 자세한 내용은 함수 구현부
 void recv_msg(int idx); // recv() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 
 void dm_send_msg(const string& sender, const char* msg, const string& recipientUser);
-void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser);
+void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser, const string& username);
 int chat_recv();
 
 // 디비 구분
@@ -271,14 +271,18 @@ void db_login() {
             login_result = true;
             int result = 1;
             int server_request = 1;
-            dm_send_result(server_request, "server", result, test_count);
-            cout << msg << endl;
+            int str_test_count = stoi(test_count);
+            sck_list[str_test_count].user = db_name;
+            dm_send_result(server_request, "server", result, test_count, db_name);
+
+            cout << sck_list[str_test_count].user << "확인@@@@@@@@@@@@@@@@@@@" << endl;
+            cout << msg << " 랑 " << db_name << endl;
         }
         else if (db_id != tokens[1] || db_pw != tokens[2]) {
             string msg = " 636 line ※ 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
             int result = 0;
             int server_request = 1;
-            dm_send_result(server_request, "server", result, tokens[1]);
+            dm_send_result(server_request, "server", result, tokens[1], "임시유저");
             cout << msg << endl;
         }
     }
@@ -286,85 +290,10 @@ void db_login() {
         string msg = " ※ 642line 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
         int result = 54321;
         int server_request = 1;
-        dm_send_result(server_request, "server", result, test_count);
+        dm_send_result(server_request, "server", result, test_count, "임시유저");
         cout << msg << endl;
     }
     return;
-}
-
-//임시 처리
-void db_login_ver2() { 
-    SOCKADDR_IN addr = {};
-    int addrsize = sizeof(addr);
-    char buf[MAX_SIZE] = { };
-    ZeroMemory(&addr, addrsize); // addr의 메모리 영역을 0으로 초기화
-    SOCKET_INFO client = {};
-    client.sck = accept(server_sock.sck, (sockaddr*)&addr, &addrsize);
-    recv(client.sck, buf, MAX_SIZE, 0);
-    // Winsock2의 recv 함수. client가 보낸 닉네임을 받음.
-    cout << "buf" << buf << endl;
-
-    // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
-    std::istringstream iss(buf);
-    std::vector<std::string> login_tokens;
-    std::string login_token;
-
-    while (iss >> login_token) {
-        login_tokens.push_back(login_token);
-    }
-
-    string user_request = login_tokens[0]; // 요청 작업 번호
-    string user_id = login_tokens[1]; // 아이디
-    string pw = login_tokens[2]; // 비밀번호
-
-    db_init();
-
-    pstmt = con->prepareStatement("SELECT user_id, name, pw FROM users WHERE user_id = ?");
-    pstmt->setString(1, user_id);
-    res = pstmt->executeQuery();
-
-    // 결과가 있다면
-    if (res->next()) {
-        string db_id = res->getString("user_id"); // 데이터베이스의 id 저장
-        string db_pw = res->getString("pw"); // 데이터베이스의 비밀번호 저장
-        string db_name = res->getString("name"); // 데이터베이스의 이름 저장
-
-        // 데이터베이스에 저장된 데이터와 입력받은 데이터가 동일하다면
-        if (db_id == user_id && db_pw == pw) {
-            string msg = " ※ 로그인 성공 ! ";
-            cout << msg << endl;
-            int result = 12345;
-            int server_request = 1;
-            dm_send_result(server_request, "server", result, login_tokens[1]);
-            send_msg(msg.c_str());
-        }
-        else if (db_id != user_id || db_pw != pw) {
-            string msg = " ※330 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
-            cout << msg << endl;
-            send_msg(msg.c_str());
-            Sleep(2000);
-        }
-    }
-    else {
-        string msg = " ※ 336 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
-        cout << msg << endl;
-        send_msg(msg.c_str());
-        Sleep(2000);
-    }
-}
-
-void db_countuser() {
-    db_init();
-    cout << "\n";
-    stmt = con->createStatement();
-    res = stmt->executeQuery("SELECT count(*) FROM users");
-
-    while (res->next()) {
-        cout << "[공지] 현재 가입된 유저 수 : " << res->getString("count(*)") << endl;
-    }
-
-    delete pstmt;
-    delete con;
 }
 
 //회원가입
@@ -679,9 +608,11 @@ void add_client() {
     
     sck_list[client_count].login_status = false;
     sck_list[client_count].user_number = client_count;
-
+    cout << "========================" << endl;
+    cout << "새로운 유저가 접근했습니다." << endl;
     cout << "sck_list[client_count].login_status = " << sck_list[client_count].login_status << endl;
     cout << "sck_list[client_count].user_number = " << sck_list[client_count].user_number << endl;
+    cout << "========================" << endl;
     client_count++; // client 수 증가 
     th.join();
 }
@@ -750,10 +681,10 @@ void add_client_3() {
 }
 //string msg = User_request + " " + my_nick + " " + my_pw;
 
-void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser) { 
+void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser, const string& username) {
     string vari  = std::to_string(variable);
     string serv_request = std::to_string(server_request);
-    string result = serv_request + " " + sender + " " + vari + " " + recipientUser;
+    string result = serv_request + " " + sender + " " + vari + " " + recipientUser + " " + username;
     for (int i = 0; i < client_count; i++) {
 
         /*cout << std::to_string(sck_list[i].user_number) << " 에게 보내요" << endl;
