@@ -85,8 +85,10 @@ int MenuDraw() { //첫 게임 시작화면
     gotoxy(x - 2, y); // 35 , 15
     printf(">  로그인  "); //다른 애들보다 x값이 작은건 > 때문에 자연스럽게 보일려고
     gotoxy(x, y + 1); // 36 , 16
-    printf(" 기능 미정 ");
+    printf(" ID 찾기 ");
     gotoxy(x, y + 2); // 36, 17
+    printf(" PW 찾기 ");
+    gotoxy(x, y + 3); // 36, 18
     printf(" 기능 미정 ");
 
     while (1) {
