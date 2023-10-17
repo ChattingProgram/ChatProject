@@ -35,10 +35,10 @@ int chat_recv() {
     char buf[MAX_SIZE] = { };
     string msg;
 
-    while (1) {
+    while (!login_flag) { //이거 설정 필수!!
         ZeroMemory(&buf, MAX_SIZE);
         if (recv(client_sock, buf, MAX_SIZE, 0) > 0) {
-            //cout << "buf = " << buf << endl;
+            cout << "서버가 보낸 buf = " << buf << endl;
 
             // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
             std::istringstream iss(buf);
@@ -81,14 +81,23 @@ int chat_recv() {
                             cout << " 내 닉네임 저장 => " << login_User_nick << endl;
                             cout << "==============테스트 정보 출력=============" << endl;
                             // 여기에서 결과(result)를 사용하거나 처리
+                            cout << login_User_nick << " 님 로그인 되었습니다." << endl;
+                            cout << " 4초 뒤에 메인 화면으로 갑니다." << endl;
+                            Sleep(2000);
+                            login_flag = true; //이걸 해야지 로그인 여부 결정할 수 있음.
+                            break;
                                                        
                         }
                         else {
-                            cout << "로그인 실패" << endl;
+                            cout << "2로그인 실패" << endl;
+                            Sleep(2000);
+                            login();
                         }
                     }
                     else {
-                        cout << "로그인 실패" << endl;
+                        cout << "3로그인 실패 2초대기" << endl;
+                        Sleep(2000);
+                        login();
                     }
                 }
                 else {
@@ -96,11 +105,7 @@ int chat_recv() {
                 }
             }
 
-            if (tokens[1] == my_nick) {
-                if (tokens[1] == "server") {
-                    cout << "여긴 무슨 예외가 와야함?." << endl;
-                }
-                else {
+            if (tokens[1] == login_User_nick) {
                     //cout <<" 메세지가 전송되었습니다." << endl;
                     //cout << tokens[1] << " 에게 메세지가 전송되었습니다." << endl;
                     cout << login_User_nick << " 님 로그인 되었습니다." << endl;
@@ -108,7 +113,7 @@ int chat_recv() {
                     Sleep(4000);
                     login_flag = true; //이걸 해야지 로그인 여부 결정할 수 있음.
                     break;
-                }
+                
             }
 
 
@@ -123,43 +128,33 @@ int chat_recv() {
 void login() {
     system("cls");
     
-    while (!code) {
-
+    while (!login_flag) {
+        
         // 이걸 먼저해야 다시 로그인시도 못함. 
         if (login_flag == true) {
             break;
         }
 
+        string User_input;
+
         string User_request = "1";
         cout << "아아디 입력 >> ";
-        cin >> my_nick;
+        cin >> User_input;
+        my_nick = User_input;
         cout << "비밀번호 입력 >> ";
-        cin >> my_pw;       
+        cin >> User_input;
+        my_pw = User_input;
 
+        cout << "아이딘는 : " << my_nick << endl;
+        
         while (1) {
-            if (!connect(client_sock, (SOCKADDR*)&client_addr, sizeof(client_addr))) { // 위에 설정한 정보에 해당하는 server로 연결!
-                cout << "Server Connect" << endl;
-                //send(client_sock, my_nick.c_str(), my_nick.length(), 0); // 연결에 성공하면 client 가 입력한 닉네임을 서버로 전송
-                //send(client_sock, my_pw.c_str(), my_pw.length(), 0);
-                string msg = User_request + " " + my_nick + " " + my_pw;
-                send(client_sock, msg.c_str(), msg.length(), 0);
-                break;
-            }
-            cout << "Connecting..." << endl;
+            string msg = User_request + " " + my_nick + " " + my_pw;
+            send(client_sock, msg.c_str(), msg.length(), 0);
+            break;
         }
 
         std::thread th2(chat_recv);
-        //if (keyControl() == SUBMIT) { //스페이스바 누르기 전 까지는 이 정보창에 머무릅니다.
-        //    login_flag = false;
-        //}
-
-        while (1) {        
-            break;
-            string text;
-            std::getline(cin, text);
-            const char* buffer = text.c_str(); // string형을 char* 타입으로 변환       
-            send(client_sock, buffer, strlen(buffer), 0);
-        }
+        //while(1)
 
         th2.join();        
         //closesocket(client_sock); //이거 주석처리 안하면 페이지 전환시 (서버에서) 로그 아웃 처리됨
@@ -179,14 +174,26 @@ void socket_init() {
     client_addr.sin_family = AF_INET;
     client_addr.sin_port = htons(7777);
     InetPton(AF_INET, TEXT("127.0.0.1"), &client_addr.sin_addr);
+
+    while (1) {
+        if (!connect(client_sock, (SOCKADDR*)&client_addr, sizeof(client_addr))) { // 위에 설정한 정보에 해당하는 server로 연결!
+            cout << "Server Connect" << endl;
+            string msg = "auto produce";
+            send(client_sock, msg.c_str(), msg.length(), 0); // 연결에 성공하면 client 가 입력한 닉네임을 서버로 전송
+            //send(client_sock, my_pw.c_str(), my_pw.length(), 0);                
+            break;
+        }
+        cout << "Connecting..." << endl;
+    }
 }
 
 int main()
 {
     init(); //커서 깜빡거리는거 삭제해주는 함수
     socket_init();
-
+    
     while (1) {
+        //std::thread th2(chat_recv);
         MainMenu(); // 메인 메뉴 그리기 생성자 호출
 
         //로그인 성공했을 때만 트루로 바꿔줬으므로, 로그인 됐을 때만 아이디가 출력됨.
@@ -204,6 +211,7 @@ int main()
         }
         else if (menuCode == 2) {
             cout << "\n\n\n";
+            //th2.join();
             WSACleanup();
             return 0; // 게임 종료
         }
