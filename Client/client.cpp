@@ -35,10 +35,10 @@ int chat_recv() {
     char buf[MAX_SIZE] = { };
     string msg;
 
-    while (1) {
+    while (!login_flag) { //이거 설정 필수!!
         ZeroMemory(&buf, MAX_SIZE);
         if (recv(client_sock, buf, MAX_SIZE, 0) > 0) {
-            cout << "buf = " << buf << endl;
+            cout << "서버가 보낸 buf = " << buf << endl;
 
             // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
             std::istringstream iss(buf);
@@ -83,14 +83,14 @@ int chat_recv() {
                             // 여기에서 결과(result)를 사용하거나 처리
                             cout << login_User_nick << " 님 로그인 되었습니다." << endl;
                             cout << " 4초 뒤에 메인 화면으로 갑니다." << endl;
-                            Sleep(4000);
+                            Sleep(2000);
                             login_flag = true; //이걸 해야지 로그인 여부 결정할 수 있음.
                             break;
                                                        
                         }
                         else {
                             cout << "2로그인 실패" << endl;
-                            Sleep(5000);
+                            Sleep(2000);
                             login();
                         }
                     }
@@ -129,7 +129,7 @@ void login() {
     system("cls");
     
     while (!login_flag) {
-
+        
         // 이걸 먼저해야 다시 로그인시도 못함. 
         if (login_flag == true) {
             break;
@@ -154,7 +154,7 @@ void login() {
         }
 
         std::thread th2(chat_recv);
-        while(1)
+        //while(1)
 
         th2.join();        
         //closesocket(client_sock); //이거 주석처리 안하면 페이지 전환시 (서버에서) 로그 아웃 처리됨
@@ -191,8 +191,9 @@ int main()
 {
     init(); //커서 깜빡거리는거 삭제해주는 함수
     socket_init();
-
+    
     while (1) {
+        //std::thread th2(chat_recv);
         MainMenu(); // 메인 메뉴 그리기 생성자 호출
 
         //로그인 성공했을 때만 트루로 바꿔줬으므로, 로그인 됐을 때만 아이디가 출력됨.
@@ -210,6 +211,7 @@ int main()
         }
         else if (menuCode == 2) {
             cout << "\n\n\n";
+            //th2.join();
             WSACleanup();
             return 0; // 게임 종료
         }

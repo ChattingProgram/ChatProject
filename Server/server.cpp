@@ -256,6 +256,8 @@ void db_login() {
     pstmt->setString(1, tokens[1]);
     res = pstmt->executeQuery();
 
+    cout << test_count << "에 넣어요." << endl;
+
     // 결과가 있다면
     //dm_send_result(const string& sender, int variable, const string& recipientUser)
     if (res->next()) {
@@ -287,6 +289,7 @@ void db_login() {
         dm_send_result(server_request, "server", result, test_count);
         cout << msg << endl;
     }
+    return;
 }
 
 //임시 처리
@@ -673,13 +676,13 @@ void add_client() {
     sck_list.push_back(new_client); // client 정보를 답는 sck_list 배열에 새로운 client 추가        
     std::thread th(recv_msg, client_count);
 
-    client_count++; // client 수 증가 
+    
     sck_list[client_count].login_status = false;
     sck_list[client_count].user_number = client_count;
 
     cout << "sck_list[client_count].login_status = " << sck_list[client_count].login_status << endl;
     cout << "sck_list[client_count].user_number = " << sck_list[client_count].user_number << endl;
-
+    client_count++; // client 수 증가 
     th.join();
 }
 
@@ -751,11 +754,12 @@ void dm_send_result(int server_request, const string& sender, int variable, cons
     string vari  = std::to_string(variable);
     string serv_request = std::to_string(server_request);
     string result = serv_request + " " + sender + " " + vari + " " + recipientUser;
-    for (int i = 1; i < client_count+1; i++) {
+    for (int i = 0; i < client_count; i++) {
 
-        cout << std::to_string(sck_list[i].user_number) << " 에게 보내요" << endl;
+        /*cout << std::to_string(sck_list[i].user_number) << " 에게 보내요" << endl;
         cout << sck_list[i].user_number << " 값 확인용 " << endl;
-        test_count = std::to_string(sck_list[i].user_number);
+        test_count = std::to_string(sck_list[i].user_number);*/
+        cout << test_count << " 값 확인용 " << endl;
 
         if (std::to_string(sck_list[i].user_number) == recipientUser) {
             //if (sck_list[i].login_status == true) {
@@ -789,26 +793,30 @@ void send_msg(const char* msg) {
 }
 
 void recv_msg(int idx) {
-    char buf[MAX_SIZE] = { };
+    //char buf[MAX_SIZE] = { };
     string msg = "";
     //cout << sck_list[idx].user << endl;
     while (1) {
+        char buf[MAX_SIZE] = { };
         ZeroMemory(&buf, MAX_SIZE);
         if (recv(sck_list[idx].sck, buf, MAX_SIZE, 0) > 0) { // 오류가 발생하지 않으면 recv는 수신된 바이트 수를 반환. 0보다 크다는 것은 메시지가 왔다는 것.
-            msg = sck_list[idx].user + " : " + buf; //
-            cout << "793 = " << msg << endl;
+            cout << "========================" << endl; 
+            msg =  buf; //sck_list[idx].user
+            cout << sck_list[idx].user_number  << " 랑 buf 는 = " << msg << endl;
             //send_msg(msg.c_str());
                         
             std::istringstream iss(buf);
 
+            tokens.clear(); // 이전 토큰을 지우고 새로 시작안하면 값 변질되서 제대로 인식 못함 ㅠㅠㅠㅠㅠ
             while (iss >> token) {
                 tokens.push_back(token);
             }
             if (tokens[0] == "1") { cout << tokens[1] << " 토큰[1]을 아이디값으로 바탕으로 로그인 요청이 들어왔습니다." << endl; };
 
+            test_count = std::to_string(sck_list[idx].user_number);
             db_init();
             db_login();
-
+            
         }
         else { //그렇지 않을 경우 퇴장에 대한 신호로 생각하여 퇴장 메시지 전송
             msg = "[공지] " + sck_list[idx].user + " 님이 퇴장했습니다.";
