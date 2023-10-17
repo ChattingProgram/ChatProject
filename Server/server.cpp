@@ -34,6 +34,8 @@ SOCKET client_sock;
 struct SOCKET_INFO { // 연결된 소켓 정보에 대한 틀 생성
     SOCKET sck;
     string user;
+    int user_number;
+    bool login_status = false;
 };
 
 std::vector<SOCKET_INFO> sck_list; // 연결된 클라이언트 소켓들을 저장할 배열 선언.
@@ -43,6 +45,8 @@ std::vector<std::string> tokens; // 소켓에 대한 정보를 담기 위한 토큰 배열
 std::string token; //토큰 배열
 
 int client_count = 0; // 현재 접속해 있는 클라이언트를 count 할 변수 선언.
+string test_count;
+bool login_result = false;
 bool request_result = false;
 void server_init(); // socket 초기화 함수. socket(), bind(), listen() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 void add_client(); // 소켓에 연결을 시도하는 client를 추가(accept)하는 함수. client accept() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
@@ -50,7 +54,7 @@ void send_msg(const char* msg); // send() 함수 실행됨. 자세한 내용은 함수 구현부
 void recv_msg(int idx); // recv() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 
 void dm_send_msg(const string& sender, const char* msg, const string& recipientUser);
-void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser);
+void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser, const string& username);
 void dm_send_findResult(int server_request, const string& sender, int variable, const string& recipientUser, string findValue);
 int chat_recv();
 
@@ -253,6 +257,8 @@ void db_login() {
     pstmt->setString(1, tokens[1]);
     res = pstmt->executeQuery();
 
+    cout << test_count << "에 넣어요." << endl;
+
     // 결과가 있다면
     //dm_send_result(const string& sender, int variable, const string& recipientUser)
     if (res->next()) {
@@ -263,83 +269,34 @@ void db_login() {
         // 데이터베이스에 저장된 데이터와 입력받은 데이터가 동일하다면
         if (db_id == tokens[1] && db_pw == tokens[2]) {
             string msg = "※로그인 성공!";
+            login_result = true;
             int result = 1;
             int server_request = 1;
-            dm_send_result(server_request, "server", result, tokens[1]);
+            int str_test_count = stoi(test_count);
+            sck_list[str_test_count].user = db_name;
+            dm_send_result(server_request, "server", result, test_count, db_name);
+
+            cout << sck_list[str_test_count].user << "확인@@@@@@@@@@@@@@@@@@@" << endl;
+            cout << msg << " 랑 " << db_name << endl;
         }
         else if (db_id != tokens[1] || db_pw != tokens[2]) {
             string msg = " 636 line ※ 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
             int result = 0;
-            int server_request = 2;
-            dm_send_result(server_request, "server", result, tokens[1]);
+            int server_request = 1;
+            dm_send_result(server_request, "server", result, tokens[1], "임시유저");
+            cout << msg << endl;
         }
     }
     else {
         string msg = " ※ 642line 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
-        int result = 2;
-        int server_request = 2;
-        dm_send_result(server_request, "server", result, tokens[1]);
-    }
-}
-
-//임시 처리
-void db_login_ver2() { 
-    SOCKADDR_IN addr = {};
-    int addrsize = sizeof(addr);
-    char buf[MAX_SIZE] = { };
-    ZeroMemory(&addr, addrsize); // addr의 메모리 영역을 0으로 초기화
-    SOCKET_INFO client = {};
-    client.sck = accept(server_sock.sck, (sockaddr*)&addr, &addrsize);
-    recv(client.sck, buf, MAX_SIZE, 0);
-    // Winsock2의 recv 함수. client가 보낸 닉네임을 받음.
-    cout << "buf" << buf << endl;
-
-    // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
-    std::istringstream iss(buf);
-    std::vector<std::string> login_tokens;
-    std::string login_token;
-
-    while (iss >> login_token) {
-        login_tokens.push_back(login_token);
-    }
-
-    string user_request = login_tokens[0]; // 요청 작업 번호
-    string user_id = login_tokens[1]; // 아이디
-    string pw = login_tokens[2]; // 비밀번호
-
-    db_init();
-
-    pstmt = con->prepareStatement("SELECT user_id, name, pw FROM users WHERE user_id = ?");
-    pstmt->setString(1, user_id);
-    res = pstmt->executeQuery();
-
-    // 결과가 있다면
-    if (res->next()) {
-        string db_id = res->getString("user_id"); // 데이터베이스의 id 저장
-        string db_pw = res->getString("pw"); // 데이터베이스의 비밀번호 저장
-        string db_name = res->getString("name"); // 데이터베이스의 이름 저장
-
-        // 데이터베이스에 저장된 데이터와 입력받은 데이터가 동일하다면
-        if (db_id == user_id && db_pw == pw) {
-            string msg = " ※ 로그인 성공 ! ";
-            cout << msg << endl;
-            int result = 12345;
-            int server_request = 1;
-            dm_send_result(server_request, "server", result, login_tokens[1]);
-            send_msg(msg.c_str());
-        }
-        else if (db_id != user_id || db_pw != pw) {
-            string msg = " ※ 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
-            cout << msg << endl;
-            send_msg(msg.c_str());
-        }
-    }
-    else {
-        string msg = " ※ 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
+        int result = 54321;
+        int server_request = 1;
+        dm_send_result(server_request, "server", result, test_count, "임시유저");
         cout << msg << endl;
-        send_msg(msg.c_str());
     }
+    return;
 }
+
 
 void db_countuser() {
     db_init();
@@ -533,45 +490,7 @@ void db_findID() {
         dm_send_findResult(server_request, "server", result, tokens[1], fail); // findValue = fail
     }
 }
-// 기존 작업했던 함수
-void db_findID_ver2() {
-    db_init();
-    string name, phonenumber;
 
-    cout << "ID를 찾을 이름을 입력하세요. : ";
-    cin >> name;
-
-    while (true) {
-        cout << "전화번호를 입력하세요. : ";
-        cin >> phonenumber;
-        if (phonenumber.length() != 13) {
-            cout << "▶ 전화번호를 다시 입력해주세요. (- 포함)" << endl;
-            continue;
-        }
-        break;
-    }
-
-    pstmt = con->prepareStatement("SELECT user_id, name, phonenumber FROM users WHERE phonenumber = ?");
-    pstmt->setString(1, phonenumber);
-    res = pstmt->executeQuery();
-
-    if (res->next()) {
-        string db_id = res->getString(1);
-        string db_name = res->getString(2);
-        string db_phonenumber = res->getString(3);
-
-        if (db_name == name && db_phonenumber == phonenumber) {
-            cout << name << "님의 아이디는 " << db_id << " 입니다." << endl;
-        }
-        else {
-            cout << "입력하신 정보를 찾을 수 없습니다." << endl;
-        }
-    }
-    else {
-        cout << "입력하신 정보를 찾을 수 없습니다." << endl;
-    }
-}
-// 새로 작업한 함수
 void db_findPW() {
     cout << "tokens[0] : " << tokens[0] << endl;
     cout << "tokens[1] : " << tokens[1] << endl;
@@ -611,72 +530,6 @@ void db_findPW() {
         string fail = "실패";
         cout << " 500" << endl;
         dm_send_findResult(server_request, "server", result, tokens[1], fail); // findValue = fail
-    }
-}
-// 기존 작업했던 함수
-void db_findPW_ver2() {
-    SOCKADDR_IN addr = {};
-    int addrsize = sizeof(addr);
-    char buf[MAX_SIZE] = { };
-    ZeroMemory(&addr, addrsize); // addr의 메모리 영역을 0으로 초기화
-    SOCKET_INFO client = {};
-    client.sck = accept(server_sock.sck, (sockaddr*)&addr, &addrsize);
-    recv(client.sck, buf, MAX_SIZE, 0);
-    // Winsock2의 recv 함수. client가 보낸 닉네임을 받음.
-    cout << "buf" << buf << endl;
-
-    // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
-    std::istringstream iss(buf);
-    std::vector<std::string> findID_tokens;
-    std::string findID_token;
-
-    while (iss >> findID_token) {
-        findID_tokens.push_back(findID_token);
-    }
-
-    string user_request = findID_tokens[0]; // 요청 작업 번호
-    string user_id = findID_tokens[1]; // 아이디
-    string pw = findID_tokens[2]; // 비밀번호
-
-    db_init();
-    string name, phonenumber;
-
-    cout << "ID를 입력하세요. : ";
-    cin >> user_id;
-    cout << "ID를 찾을 이름을 입력하세요. : ";
-    cin >> name;
-
-    while (true) {
-        cout << "전화번호를 입력하세요. : ";
-        cin >> phonenumber;
-        if (phonenumber.length() != 13) {
-            cout << "▶ 전화번호를 다시 입력해주세요. (- 포함)" << endl;
-            continue;
-        }
-        break;
-    }
-
-    pstmt = con->prepareStatement("SELECT user_id, name, pw, phonenumber FROM users WHERE phonenumber = ?");
-    pstmt->setString(1, phonenumber);
-    res = pstmt->executeQuery();
-
-    if (res->next()) {
-        string db_id = res->getString(1);
-        string db_name = res->getString(2);
-        string db_pw = res->getString(3);
-        string db_phonenumber = res->getString(4);
-
-        if (db_id == user_id && db_name == name && db_phonenumber == phonenumber) {
-            cout << user_id << "님의 비밀번호는 " << db_pw << " 입니다." << endl;
-        }
-        else {
-            cout << "입력하신 정보를 찾을 수 없습니다." << endl;
-            cout << "dddd" << endl;
-        }
-    }
-    else {
-        cout << "입력하신 정보를 찾을 수 없습니다." << endl;
-        cout << "djdk" << endl;
     }
 }
 
@@ -755,62 +608,52 @@ void server_init() {
     server_sock.user = "server";
     cout << "Server On" << endl;
     
-    db_join();
 }
 void add_client() {
+
     SOCKADDR_IN addr = {};
     int addrsize = sizeof(addr);
     char buf[MAX_SIZE] = { };
     ZeroMemory(&addr, addrsize); // addr의 메모리 영역을 0으로 초기화
+
     SOCKET_INFO new_client = {};
     new_client.sck = accept(server_sock.sck, (sockaddr*)&addr, &addrsize);
     recv(new_client.sck, buf, MAX_SIZE, 0);
     // Winsock2의 recv 함수. client가 보낸 닉네임을 받음.
     //new_client.user = string(buf);
-    //cout << "buf" << buf << endl;
+    cout << "buf = > " << buf << endl;
 
-    // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
-    std::istringstream iss(buf);
-
-
-    while (iss >> token) {
-        tokens.push_back(token);
-    }
-
-    //cout << " tokens[0] 은 " << tokens[0] << endl;
-
-    new_client.user = tokens[1];
-
-    sck_list.push_back(new_client); // client 정보를 답는 sck_list 배열에 새로운 client 추가
+    sck_list.push_back(new_client); // client 정보를 답는 sck_list 배열에 새로운 client 추가        
     std::thread th(recv_msg, client_count);
-    client_count++; // client 수 증가.
 
-    //dm_send_msg(server, message.c_str(), tokens[1]);
-    //int result = 12345;
-    //dm_send_result("server", result, tokens[1]);
 
-    string msg = "[공지] " + new_client.user + " 님이 입장했습니다.";
-    cout << msg << endl;
-
-    cout << "내용 전송 테스트2" << endl;
-    // 다른 사람들로부터 오는 메시지를 계속해서 받을 수 있는 상태로 만들어 두기.
-    
-    cout << "[공지] 현재 접속자 수 : " << client_count << "명" << endl;
-    send_msg(msg.c_str()); // c_str : string 타입을 const chqr* 타입으로 바꿔줌.
+    sck_list[client_count].login_status = false;
+    sck_list[client_count].user_number = client_count;
+    cout << "========================" << endl;
+    cout << "새로운 유저가 접근했습니다." << endl;
+    cout << "sck_list[client_count].login_status = " << sck_list[client_count].login_status << endl;
+    cout << "sck_list[client_count].user_number = " << sck_list[client_count].user_number << endl;
+    cout << "========================" << endl;
+    client_count++; // client 수 증가 
     th.join();
-
-
 }
-//string msg = User_request + " " + my_nick + " " + my_pw;
 
 void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser) { 
-    string vari  = std::to_string(variable);
+    string vari = std::to_string(variable);
     string serv_request = std::to_string(server_request);
-    string result = serv_request + " " + sender + " " + vari + " " + recipientUser;
+    string result = serv_request + " " + sender + " " + vari + " " + recipientUser + " " + username;
     for (int i = 0; i < client_count; i++) {
-        if (sck_list[i].user == recipientUser) {
+
+        /*cout << std::to_string(sck_list[i].user_number) << " 에게 보내요" << endl;
+        cout << sck_list[i].user_number << " 값 확인용 " << endl;
+        test_count = std::to_string(sck_list[i].user_number);*/
+        cout << test_count << " 값 확인용 " << endl;
+
+        if (std::to_string(sck_list[i].user_number) == recipientUser) {
+            //if (sck_list[i].login_status == true) {
             send(sck_list[i].sck, result.c_str(), result.length(), 0);
             return; // 특정 사용자에게 메시지를 보내면 함수 종료
+            //}
         }
     }
 
@@ -834,8 +677,10 @@ void dm_send_findResult(int server_request, const string& sender, int variable, 
 void dm_send_msg(const string& sender, const char* msg, const string& recipientUser) {
     for (int i = 0; i < client_count; i++) {
         if (sck_list[i].user == recipientUser) {
+            //if (sck_list[i].login_status == true){
             send(sck_list[i].sck, msg, MAX_SIZE, 0);
             return; // 특정 사용자에게 메시지를 보내면 함수 종료
+            //}
         }
     }
 
@@ -850,45 +695,30 @@ void send_msg(const char* msg) {
 }
 
 void recv_msg(int idx) {
-    char buf[MAX_SIZE] = { };
+    //char buf[MAX_SIZE] = { };
     string msg = "";
     //cout << sck_list[idx].user << endl;
     while (1) {
+        char buf[MAX_SIZE] = { };
         ZeroMemory(&buf, MAX_SIZE);
         if (recv(sck_list[idx].sck, buf, MAX_SIZE, 0) > 0) { // 오류가 발생하지 않으면 recv는 수신된 바이트 수를 반환. 0보다 크다는 것은 메시지가 왔다는 것.
-            
+            cout << "========================" << endl;
+            msg = buf; //sck_list[idx].user
+            cout << sck_list[idx].user_number << " 랑 buf 는 = " << msg << endl;
+            //send_msg(msg.c_str());
+
             std::istringstream iss(buf);
 
+            tokens.clear(); // 이전 토큰을 지우고 새로 시작안하면 값 변질되서 제대로 인식 못함 ㅠㅠㅠㅠㅠ
             while (iss >> token) {
                 tokens.push_back(token);
             }
+            if (tokens[0] == "1") { cout << tokens[1] << " 토큰[1]을 아이디값으로 바탕으로 로그인 요청이 들어왔습니다." << endl; };
 
-            while (1) {
-                if (tokens[0] == "1") {
-                    cout << tokens[1] << " 로 부터 로그인 요청이 들어왔습니다." << endl;
-                    db_init();
-                    db_login();
-                    break;
-                };
-                if (tokens[0] == "2") {
-                    cout << tokens[1] << " 로 부터 ID 찾기 요청이 들어왔습니다." << endl;
-                    db_init();
-                    db_findID();
-                    break;
-                };
-                if (tokens[0] == "3") {
-                    cout << tokens[0] << " 로 부터 PW 찾기 요청이 들어왔습니다." << endl;
-                    db_init();
-                    db_findPW();
-                    break;
-                };
-                if (tokens[0] == "4") { cout << tokens[0] << " 로 부터 [수정 필요] 요청이 들어왔습니다." << endl; };
-                if (tokens[0] == "5") { cout << tokens[0] << " 로 부터 [수정 필요] 요청이 들어왔습니다." << endl; };
-            }
+            test_count = std::to_string(sck_list[idx].user_number);
+            db_init();
+            db_login();
 
-            msg = sck_list[idx].user + " : " + buf;
-            cout << msg << endl;
-            send_msg(msg.c_str());
         }
         else { //그렇지 않을 경우 퇴장에 대한 신호로 생각하여 퇴장 메시지 전송
             msg = "[공지] " + sck_list[idx].user + " 님이 퇴장했습니다.";
