@@ -25,7 +25,9 @@ const string password = "1234"; // 데이터베이스 접속 비밀번호
 sql::mysql::MySQL_Driver* driver; // 추후 해제하지 않아도 Connector/C++가 자동으로 해제해 줌
 sql::Connection* con;
 sql::Statement* stmt;
+sql::Statement* stmt2;
 sql::PreparedStatement* pstmt;
+sql::PreparedStatement* pstmt2;
 sql::ResultSet* res; //결과값을 위해
 sql::ResultSet* res2; //결과값을 위해
 
@@ -48,12 +50,12 @@ int client_count = 0; // 현재 접속해 있는 클라이언트를 count 할 변수 선언.
 string test_count;
 bool login_result = false;
 bool request_result = false;
+bool join_result = false;
+bool join_check = false;
 void server_init(); // socket 초기화 함수. socket(), bind(), listen() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 void add_client(); // 소켓에 연결을 시도하는 client를 추가(accept)하는 함수. client accept() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
-void add_client_3();
 void send_msg(const char* msg); // send() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 void recv_msg(int idx); // recv() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
-
 void dm_send_msg(const string& sender, const char* msg, const string& recipientUser);
 void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser, const string& username);
 void dm_send_findResult(int server_request, const string& sender, int variable, const string& recipientUser, string findValue);
@@ -73,6 +75,7 @@ void db_selectQuery_ver2(); // db 셀렉트문
 void db_roomUserNameQuery(); //채팅방에 있는 유저 이름 가져오기
 void db_messageSend(); // 메시지 전송 저장
 void db_join(); //회원가입
+void db_join_check(); // 회원가입 전 아이디 체크
 void db_UserEdit(); // 회원 정보 수정부분
 void db_selectQuery(); //db 셀랙트문
 void db_login();
@@ -315,65 +318,77 @@ void db_countuser() {
 
 //회원가입
 void db_join() {
-    db_init();
-    // 데이터베이스 쿼리 실행
 
-    string User_input_id, User_input_name, User_input_pw, User_input_phonenumber, User_input_nickname;
+    pstmt = con->prepareStatement("SELECT user_id, name, pw, phonenumber, nickname, friend_name FROM users WHERE user_id = ?");
+    pstmt->setString(1, tokens[1]);
+    res = pstmt->executeQuery();
+    cout << "#323 여기까지는?" << endl;
 
-    while (1) {
-        cout << "아이디를 입력하세요. (영문 10자리 이하) : ";
-        cin >> User_input_id;
-
-        pstmt = con->prepareStatement("SELECT user_id, name, pw, phonenumber, nickname, friend_name FROM users WHERE user_id = ?");
-        pstmt->setString(1, User_input_id);
-        res = pstmt->executeQuery();
-
-        if (res->next()) {
-            cout << "이미 존재하는 ID 입니다. 다시 입력해주세요." << endl;
-            continue;
-        }
-        else {
-            cout << "이름을 입력하세요. (10자리 이하) : ";
-            cin >> User_input_name;
-
-            cout << "비밀번호를 입력하세요. (10자리 이하) : ";
-            cin >> User_input_pw;
-
-            cout << "전화번호를 입력하세요. (- 포함) : ";
-            cin >> User_input_phonenumber;
-
-            cout << "닉네임을 입력하세요. (영문 10자리 이하) : ";
-            cin >> User_input_nickname;
-
-            break;
-        }
+    if (res->next()) {
+        cout << "#326 입력한 아이디 존재" << endl;
+        join_result = false;
+        int result = 3;
+        int server_request = 4;
+        int str_test_count = stoi(test_count);
+        dm_send_result(server_request, "server", result, test_count, tokens[2]);
     }
+    else {
+        cout << "#334 입력한 아이디 없음" << endl;
 
-    stmt = con->createStatement();
-    pstmt = con->prepareStatement("INSERT INTO users (user_id, name, pw, phonenumber, nickname, friend_name) values(?,?,?,?,?,?)"); // INSERT
+        stmt = con->createStatement();
+        pstmt = con->prepareStatement("INSERT INTO users (user_id, name, pw, phonenumber, nickname, friend_name) values(?,?,?,?,?,?)"); // INSERT
+        cout << "#336 여기?" << endl;
+
+        pstmt->setString(1, tokens[1]); //아이디
+        pstmt->setString(2, tokens[2]); // 이름
+        pstmt->setString(3, tokens[3]); // 비밀번호
+        pstmt->setString(4, tokens[4]); // 전화번호
+        pstmt->setString(5, tokens[5]); // 닉네임
+        pstmt->setString(6, " "); //친구목록
+
+        pstmt->execute(); // 이거 있어야지 디비에 저장됨.
+
+        cout << "#349 here?" << endl;
+
+        string msg = "※ 회원가입 성공!";
+        join_result = true;
+        int result = 1;
+        int server_request = 4;
+        int str_test_count = stoi(test_count);
+        sck_list[str_test_count].user = tokens[1];
+        dm_send_result(server_request, "server", result, test_count, tokens[2]);
+        cout << "신규 계정 생성이 완료되었습니다." << endl;
+    }
+}
+
+void db_join_check() {
+    
+    cout << "#366 여기?" << endl;
+
+    pstmt = con->prepareStatement("SELECT user_id FROM users WHERE user_id = ?");
+    pstmt->setString(1, tokens[1]);
     res = pstmt->executeQuery();
 
-    pstmt->setString(1, User_input_id); //아이디
-    pstmt->setString(2, User_input_name); // 이름
-    pstmt->setString(3, User_input_pw); // 비밀번호
-    pstmt->setString(4, User_input_phonenumber); // 전화번호
-    pstmt->setString(5, User_input_nickname); //친구목록
-    pstmt->setString(6, " "); //친구목록
+    cout << "#372 여기는???" << endl;
 
-    pstmt->execute(); // 이거 있어야지 디비에 저장됨.
-
-    while (res->next()) {
-        cout << res->getString("user_id") << endl;
-        cout << res->getString("name") << endl;
-        cout << res->getString("pw") << endl;
-        cout << res->getString("phonenumber") << endl;
-        cout << res->getString("nickname") << endl;
-
+    if (res->next()) {
+        cout << "#374 입력한 아이디 존재" << endl;
+        join_check = false;
+        int result = 4; // 아이디 체크 실패
+        int server_request = 4;
+        int str_test_count = stoi(test_count);
+        cout << "#384 혹시 여기?" << endl;
+        dm_send_result(server_request, "server", result, test_count, tokens[1]);
     }
 
-    cout << "계정 생성이 완료되었습니다." << endl;
-
-
+    else {
+        join_check = true;
+        int result = 3; // 아이디 체크 성공 결과값
+        int server_request = 4;
+        int str_test_count = stoi(test_count);
+        cout << "#389 혹시 여기????" << endl;
+        dm_send_result(server_request, "server", result, test_count, tokens[1]);
+    }
 }
 
 
@@ -609,7 +624,7 @@ void server_init() {
     listen(server_sock.sck, SOMAXCONN); // 소켓을 대기 상태로 기다린다.
     server_sock.user = "server";
     cout << "Server On" << endl;
-    
+
 }
 
 void add_client() {
@@ -641,7 +656,7 @@ void add_client() {
     th.join();
 }
 
-void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser) { 
+void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser, const string& username) {
     string vari = std::to_string(variable);
     string serv_request = std::to_string(server_request);
     string result = serv_request + " " + sender + " " + vari + " " + recipientUser + " " + username;
@@ -676,8 +691,8 @@ void dm_send_findResult(int server_request, const string& sender, int variable, 
 
         if (std::to_string(sck_list[i].user_number) == recipientUser) {
             //if (sck_list[i].login_status == true) {
-                send(sck_list[i].sck, result.c_str(), result.length(), 0);
-                return; // 특정 사용자에게 메시지를 보내면 함수 종료
+            send(sck_list[i].sck, result.c_str(), result.length(), 0);
+            return; // 특정 사용자에게 메시지를 보내면 함수 종료
             //}
         }
     }
@@ -721,14 +736,30 @@ void recv_msg(int idx) {
             std::istringstream iss(buf);
 
             tokens.clear(); // 이전 토큰을 지우고 새로 시작안하면 값 변질되서 제대로 인식 못함 ㅠㅠㅠㅠㅠ
+            test_count = std::to_string(sck_list[idx].user_number);
+
             while (iss >> token) {
                 tokens.push_back(token);
             }
-            if (tokens[0] == "1") { cout << tokens[1] << " 토큰[1]을 아이디값으로 바탕으로 로그인 요청이 들어왔습니다." << endl; };
+            if (tokens[0] == "1") { 
+                cout << tokens[1] << " 토큰[1]을 아이디값으로 바탕으로 로그인 요청이 들어왔습니다." << endl;
 
-            test_count = std::to_string(sck_list[idx].user_number);
-            db_init();
-            db_login();
+                db_init();
+                db_login();
+            };
+            if (tokens[0] == "4") { 
+                cout << " 회원가입 요청이 들어왔습니다." << endl;
+                db_init();
+                db_join();
+            };
+            if (tokens[0] == "41") { 
+                cout << " 아이디 확인 요청이 들어왔습니다." << endl;
+                db_init();
+                db_join_check();
+                
+            };
+
+
         }
         else { //그렇지 않을 경우 퇴장에 대한 신호로 생각하여 퇴장 메시지 전송
             msg = "[공지] " + sck_list[idx].user + " 님이 퇴장했습니다.";

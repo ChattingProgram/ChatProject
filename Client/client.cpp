@@ -20,7 +20,7 @@ string my_id, my_nick, my_pw, my_name, my_phonenumber, result;
 string login_User_nick; //로그인한 유저 이름 아이디 저장
 
 WSADATA wsa;
-// Winsock를 초기화하는 함수. MAKEWORD(2, 2)는 Winsock의 2.2 버전을 사용하겠다는 의미.
+// Winsock를 초기화하는 함수. MAKEWORD(2, 2)는 Winsock의 2.2 버전을 사용하겠다는 의미..+
 // 실행에 성공하면 0을, 실패하면 그 이외의 값을 반환.
 // 0을 반환했다는 것은 Winsock을 사용할 준비가 되었다는 의미.
 int code = WSAStartup(MAKEWORD(2, 2), &wsa);
@@ -29,9 +29,12 @@ void login(); // 로그인
 bool login_flag = false;
 bool findID_flag = false;
 bool findPW_flag = false;
+bool join_flag = false;
+bool join_id_flag = false;
 void socket_init(); // 소켓정보 저장
 void findID(); // 아이디 찾기
 void findPW(); // 패스워드 찾기
+void join();
 
 int chat_recv() {
     char buf[MAX_SIZE] = { };
@@ -237,6 +240,73 @@ int findPW_recv() {
     }
 }
 
+int join_recv() {
+    char buf[MAX_SIZE] = { };
+    string msg;
+
+    while (1) {
+        ZeroMemory(&buf, MAX_SIZE);
+        if (recv(client_sock, buf, MAX_SIZE, 0) > 0) {
+            cout << "buf = " << buf << endl;
+
+            // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
+            std::istringstream iss(buf);
+            std::vector<std::string> tokens;
+            std::string token;
+
+            while (iss >> token) {
+                tokens.push_back(token);
+            }
+
+            // ( [0] : 요청 결과 (1=로그인 등) / [1] : 보낸 사람 ( 왠만해선 "server") / [2] : 결과값 (회원가입 성공 여부) / [3] : 받는 사람 / [4] : 유저 이름 )
+            if (tokens[1] == "server") {
+                if (tokens[0] == "4") {
+                    result = tokens[2];
+                    if (result == "1") {
+                        cout << " ※ 회원 가입 성공!" << endl;
+                        cout << " ※ " << tokens[3] << " 님 환영합니다. " << endl;
+                        cout << "5초 뒤 메인 화면으로 돌아갑니다. " << endl;
+                        join_flag = true; // 회원가입 성공 여부
+                        Sleep(5000);
+                        break;
+                    }
+                    else if (result == "3") {
+                        join_flag = false;
+                        cout << "#276 출력 됨?" << endl;
+                        join_id_flag = true;
+                        Sleep(5000);
+                        break;
+                    }
+                    else if (result == "4") {
+                        cout << "#263 회원가입 실패! 이미 존재하는 아이디입니다. " << endl;
+                        join_flag = false;
+                        join_id_flag = false;
+                        Sleep(5000);
+                        join();
+                        break;
+                    }
+                    else {
+                        join_flag = false; // 회원가입 성공 여부
+                        cout << " #274 // 회원가입 실패! 입력한 정보를 다시 확인해주세요. " << endl;
+                        Sleep(5000);
+                        join();
+                        break;
+                    }
+                }
+                else {
+                    join_flag = false; // 회원가입 성공 여부
+                    cout << " #281 // 회원가입 실패! 입력한 정보를 다시 확인해주세요. " << endl;
+                    Sleep(5000);
+                    join();
+                    break;
+                }
+            }
+
+
+        }
+    }
+}
+
 void login() {
     system("cls");
 
@@ -258,7 +328,7 @@ void login() {
         my_pw = User_input;
 
         cout << "아이딘는 : " << my_nick << endl;
-        
+
         while (1) {
             string msg = User_request + " " + my_nick + " " + my_pw;
             send(client_sock, msg.c_str(), msg.length(), 0);
@@ -290,7 +360,7 @@ void findID() {
         cout << "이름 입력 >> ";
         cin >> my_name;
 
-        while(true) {
+        while (true) {
             cout << "전화번호 입력(- 포함) >> ";
             cin >> my_phonenumber;
 
@@ -301,9 +371,9 @@ void findID() {
             break;
         }
 
-		string msg = User_request + " " + my_name + " " + my_phonenumber;
-		send(client_sock, msg.c_str(), msg.length(), 0);
-        
+        string msg = User_request + " " + my_name + " " + my_phonenumber;
+        send(client_sock, msg.c_str(), msg.length(), 0);
+
 
         cout << User_request << endl;
         cout << my_name << endl;
@@ -341,7 +411,7 @@ void findPW() {
 
         string User_request = "3"; // PW 찾기 번호?
         cout << "ID 입력 >> ";
-        cin >> my_id;        
+        cin >> my_id;
         cout << "이름 입력 >> ";
         cin >> my_name;
 
@@ -356,13 +426,8 @@ void findPW() {
             break;
         }
 
-        while (1) {
-            if (!connect(client_sock, (SOCKADDR*)&client_addr, sizeof(client_addr))) {
-                string msg = User_request + " " + my_id + " " + my_name + " " + my_phonenumber;
-                send(client_sock, msg.c_str(), msg.length(), 0);
-                break;
-            }
-        }
+        string msg = User_request + " " + my_id + " " + my_name + " " + my_phonenumber;
+        send(client_sock, msg.c_str(), msg.length(), 0);
 
         std::thread th2(findPW_recv);
         //if (keyControl() == SUBMIT) { //스페이스바 누르기 전 까지는 이 정보창에 머무릅니다.
@@ -390,12 +455,93 @@ void join() {
 
 
     while (!code) {
-        string User_request = "4"; // 회원가입 번호
-        cout << "아이디를 입력하세요. (영문 10자리 이하) : ";
-        cin >> my_id;
 
+        if (join_flag == true) {
+            break;
+        }
+
+        if (join_id_flag == false) {
+
+            while (1) {
+                cout << "아이디를 입력하세요. (영문 10자리 이하) : ";
+                cin >> my_id;
+
+                if (my_id.length() > 10) {
+                    cout << "입력 가능한 자리수를 넘었습니다. 다시 입력해주세요. ";
+                    continue;
+                }
+                else { break; }
+            }
+
+            string User_request = "41"; // 회원가입 전 아이디 확인 요청 번호
+            string msg_id = User_request + " " + my_id;
+            send(client_sock, msg_id.c_str(), msg_id.length(), 0);
+        }
+
+        else if (join_id_flag == true) {
+            while (1) {
+                cout << "이름을 입력하세요. : ";
+                cin >> my_name;
+
+                if (my_name.length() > 10) {
+                    cout << "입력 가능한 자리수를 넘었습니다. 다시 입력해주세요. ";
+                    continue;
+                }
+                else { break; }
+            }
+
+            while (1) {
+                cout << "비밀번호를 입력하세요. (10자리 이하) : ";
+                cin >> my_pw;
+
+                if (my_pw.length() > 10) {
+                    cout << "입력 가능한 자리수를 넘었습니다. 다시 입력해주세요. ";
+                    continue;
+                }
+                else { break; }
+            }
+
+            while (1) {
+                cout << "전화번호를 입력하세요. (- 포함) : "; // 추후 - 입력 안해도 자동 입력되게끔?
+                cin >> my_phonenumber;
+
+                if (my_phonenumber.length() > 13) {
+                    cout << "잘못 입력하셨습니다. 다시 입력해주세요. ";
+                    continue;
+                }
+                else { break; }
+            }
+
+            while (1) {
+                cout << "닉네임을 입력하세요. (10자리 이하) : ";
+                cin >> my_nick;
+
+                if (my_nick.length() > 10) {
+                    cout << "입력 가능한 자리수를 넘었습니다. 다시 입력해주세요. ";
+                    continue;
+                }
+                else { break; }
+            }
+
+            string User_request = "4"; // 회원가입 전 아이디 확인 요청 번호
+            string msg = User_request + " " + my_id + " " + my_name + " " + my_pw + " " + my_phonenumber + " " + my_nick; // 친구 목록은 제외?
+            send(client_sock, msg.c_str(), msg.length(), 0);
+
+        }
+
+        std::thread th(join_recv);
+
+        while (1) {
+            break;
+            string text;
+            std::getline(cin, text);
+            const char* buffer = text.c_str();
+            send(client_sock, buffer, strlen(buffer), 0);
+        }
+        th.join();
     }
 }
+
 void socket_init() {
 
     client_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP); // 
@@ -412,7 +558,7 @@ void socket_init() {
             string msg = "auto produce";
             send(client_sock, msg.c_str(), msg.length(), 0); // 연결에 성공하면 client 가 입력한 닉네임을 서버로 전송
             //send(client_sock, my_pw.c_str(), my_pw.length(), 0);          
-            
+
             break;
         }
         cout << "Connecting..." << endl;
@@ -423,13 +569,13 @@ int main()
 {
     init(); //커서 깜빡거리는거 삭제해주는 함수
     socket_init();
-    
+
     while (1) {
         //std::thread th2(chat_recv);
         MainMenu(); // 메인 메뉴 그리기 생성자 호출
 
         //로그인 성공했을 때만 트루로 바꿔줬으므로, 로그인 됐을 때만 아이디가 출력됨.
-        if (login_flag == true) { 
+        if (login_flag == true) {
             cout << "로그인 성공!" << login_User_nick << " 님 환영합니다." << endl;
         }
         int menuCode = MenuDraw(); // 게임시작 버튼 생성 및 y좌표 값 저장
@@ -445,6 +591,9 @@ int main()
             findPW();// 비밀번호 찾기
         }
         else if (menuCode == 3) {
+            join();// 회원가입
+        }
+        else if (menuCode == 4) {
             cout << "\n\n\n";
             //th2.join();
             WSACleanup();

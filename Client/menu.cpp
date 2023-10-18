@@ -89,7 +89,7 @@ int MenuDraw() { //첫 게임 시작화면
     gotoxy(x, y + 2); // 36, 17
     printf(" PW 찾기 ");
     gotoxy(x, y + 3); // 36, 18
-    printf(" 기능 미정 ");
+    printf(" 회원 가입 ");
 
     while (1) {
         int n = keyControl(); //키값 받기
@@ -104,7 +104,7 @@ int MenuDraw() { //첫 게임 시작화면
             break;
         }
         case DOWN: {
-            if (y < 17) {
+            if (y < 19) {
                 gotoxy(x - 2, y);
                 printf(" ");
                 gotoxy(x - 2, ++y);
