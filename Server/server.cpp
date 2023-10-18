@@ -782,7 +782,6 @@ void recv_msg(int idx) {
             }
             if (tokens[0] == "1") { 
                 cout << tokens[1] << " 토큰[1]을 아이디값으로 바탕으로 로그인 요청이 들어왔습니다." << endl;
-
                 db_init();
                 db_login();
             };
@@ -794,18 +793,7 @@ void recv_msg(int idx) {
             if (tokens[0] == "41") { 
                 cout << " 아이디 확인 요청이 들어왔습니다." << endl;
                 db_init();
-                db_join_check();
-                
-            };
-
-
-
-
-            if (tokens[0] == "1") { 
-                cout << tokens[1] << " 토큰[1]을 아이디값으로 바탕으로 로그인 요청이 들어왔습니다." << endl; 
-                test_count = std::to_string(sck_list[idx].user_number);
-                db_init();
-                db_login();
+                db_join_check();                
             };
 
             if (tokens[0] == "4") {
