@@ -57,8 +57,9 @@ void add_client(); // 소켓에 연결을 시도하는 client를 추가(accept)하는 함수. cli
 void send_msg(const char* msg); // send() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 void recv_msg(int idx); // recv() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 void dm_send_msg(const string& sender, const char* msg, const string& recipientUser);
-void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser, const string& username);
+void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser, const string& username, const string& userid);
 void dm_send_findResult(int server_request, const string& sender, int variable, const string& recipientUser, string findValue);
+void dm_send_resultEdit(int server_request, const string& sender, int variable, const string& recipientUser);
 int chat_recv();
 
 // 디비 구분
@@ -77,6 +78,8 @@ void db_messageSend(); // 메시지 전송 저장
 void db_join(); //회원가입
 void db_join_check(); // 회원가입 전 아이디 체크
 void db_UserEdit(); // 회원 정보 수정부분
+void db_UserEdit(); // 회원 정보 수정할 때 비밀번호 확인문
+void db_UserEdit_update(); // 회원 정보 수정 업데이트문
 void db_selectQuery(); //db 셀랙트문
 void db_login();
 void db_countuser(); // (1) 유저 수 몇 명인지? (서버 공지로 활용)
@@ -278,7 +281,7 @@ void db_login() {
             int server_request = 1;
             int str_test_count = stoi(test_count);
             sck_list[str_test_count].user = db_name;
-            dm_send_result(server_request, "server", result, test_count, db_name);
+            dm_send_result(server_request, "server", result, test_count, db_name, db_id);
 
             cout << sck_list[str_test_count].user << "확인@@@@@@@@@@@@@@@@@@@" << endl;
             cout << msg << " 랑 " << db_name << endl;
@@ -287,7 +290,7 @@ void db_login() {
             string msg = " 636 line ※ 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
             int result = 0;
             int server_request = 1;
-            dm_send_result(server_request, "server", result, tokens[1], "임시유저");
+            dm_send_result(server_request, "server", result, test_count, "임시유저", "temp");
             cout << msg << endl;
         }
     }
@@ -295,7 +298,7 @@ void db_login() {
         string msg = " ※ 642line 로그인 실패 ! 아이디 또는 비밀번호를 확인해주세요.";
         int result = 54321;
         int server_request = 1;
-        dm_send_result(server_request, "server", result, test_count, "임시유저");
+        dm_send_result(server_request, "server", result, test_count, "임시유저", "temp");
         cout << msg << endl;
     }
     return;
@@ -330,7 +333,7 @@ void db_join() {
         int result = 3;
         int server_request = 4;
         int str_test_count = stoi(test_count);
-        dm_send_result(server_request, "server", result, test_count, tokens[2]);
+        dm_send_result(server_request, "server", result, test_count, tokens[2],"temp");
     }
     else {
         cout << "#334 입력한 아이디 없음" << endl;
@@ -356,7 +359,7 @@ void db_join() {
         int server_request = 4;
         int str_test_count = stoi(test_count);
         sck_list[str_test_count].user = tokens[1];
-        dm_send_result(server_request, "server", result, test_count, tokens[2]);
+        dm_send_result(server_request, "server", result, test_count, tokens[2],"temp");
         cout << "신규 계정 생성이 완료되었습니다." << endl;
     }
 }
@@ -378,7 +381,7 @@ void db_join_check() {
         int server_request = 4;
         int str_test_count = stoi(test_count);
         cout << "#384 혹시 여기?" << endl;
-        dm_send_result(server_request, "server", result, test_count, tokens[1]);
+        dm_send_result(server_request, "server", result, test_count, tokens[1],"temp");
     }
 
     else {
@@ -387,52 +390,67 @@ void db_join_check() {
         int server_request = 4;
         int str_test_count = stoi(test_count);
         cout << "#389 혹시 여기????" << endl;
-        dm_send_result(server_request, "server", result, test_count, tokens[1]);
+        dm_send_result(server_request, "server", result, test_count, tokens[1],"temp");
     }
 }
 
 
 // 회원 정보 수정부분
-void db_UserEdit() {
-    db_init();
-    // 데이터베이스 쿼리 실행
-
+void db_UserEdit() {  
     // 데이터베이스에서 현재 비밀번호를 가져오는 쿼리
     string selectQuery = "SELECT pw FROM users WHERE user_id = ?";
     pstmt = con->prepareStatement(selectQuery);
-    pstmt->setString(1, "abcd");
+    pstmt->setString(1, tokens[2]);
     res = pstmt->executeQuery();
 
     if (res->next()) {
         string database_password = res->getString("pw");
 
-        string user_input_password;
-        cout << "비밀번호을 입력하세요. : ";
-        cin >> user_input_password;
+        cout << database_password << " <- 현재 비밀번호임 " << endl;
+        cout << tokens[1] << " <- 현재 비밀번호임 " << endl;
 
         // 사용자가 입력한 비밀번호와 데이터베이스의 비밀번호 비교
-        if (user_input_password == database_password) {
+        if (tokens[1] == database_password) {
             // 입력한 비밀번호와 데이터베이스 비밀번호가 일치하면 업데이트 수행
             cout << "확인 되었습니다." << endl;
-            cout << "비밀번호을 입력하세요. : " << endl;
-            cin >> user_input_password;
-
-            string updateQuery = "UPDATE users SET pw = ? WHERE user_id = ?";
-            pstmt = con->prepareStatement(updateQuery);
-            pstmt->setString(1, user_input_password);
-            pstmt->setString(2, "abcd");
-            pstmt->executeUpdate();
-            cout << "비밀번호가 업데이트되었습니다." << endl;
+            //dm_send_result(server_request, "server", result, test_count, db_name, db_id);
+            int result = 1;
+            int str_test_count = stoi(test_count);
+            dm_send_resultEdit(4, "server", result, test_count);
+            cout << " 400라인 " << result << " and " << test_count << endl;
         }
         else {
             cout << "입력한 비밀번호가 일치하지 않습니다." << endl;
+            int result = 2;
+            int str_test_count = stoi(test_count);
+            dm_send_resultEdit(4, "server", result, test_count);
+            cout << " 400라인 " << result << " and " << test_count << endl;
+
         }
     }
     else {
-        cout << "사용자를 찾을 수 없습니다." << endl;
+        cout << "에러 : 사용자의 로그인 정보를 확인할 수 없습니다. (사용자 아이디값 변질)" << endl;
     }
 
-    cout << "Finished update table" << endl;
+    //cout << "Finished update table" << endl;
+
+}
+
+void db_UserEdit_update() {
+    
+
+	string updateQuery = "UPDATE users SET pw = ? WHERE user_id = ?";
+	pstmt = con->prepareStatement(updateQuery);
+	pstmt->setString(1, tokens[1]); //토큰즈1이 바꿀비밀번호
+	pstmt->setString(2, tokens[2]); //토큰즈2가 유저아이디
+    pstmt->executeUpdate();
+	
+    cout << tokens[2] << " 의 비밀번호가 변경 되었습니다." << endl;
+    //dm_send_result(server_request, "server", result, test_count, db_name, db_id);
+    int result = 3;
+    int str_test_count = stoi(test_count);
+    dm_send_resultEdit(4, "server", result, test_count);
+    cout << " 400라인 " << result << " and " << test_count << endl;
 
 }
 
@@ -656,10 +674,10 @@ void add_client() {
     th.join();
 }
 
-void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser, const string& username) {
+void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser, const string& username, const string& userid) {
     string vari = std::to_string(variable);
     string serv_request = std::to_string(server_request);
-    string result = serv_request + " " + sender + " " + vari + " " + recipientUser + " " + username;
+    string result = serv_request + " " + sender + " " + vari + " " + recipientUser + " " + username + " " + userid;
     for (int i = 0; i < client_count; i++) {
 
         /*cout << std::to_string(sck_list[i].user_number) << " 에게 보내요" << endl;
@@ -674,7 +692,28 @@ void dm_send_result(int server_request, const string& sender, int variable, cons
             //}
         }
     }
+    // 사용자를 찾지 못한 경우, 에러 메시지 출력 또는 다른 처리를 추가할 수 있습니다.
+}
 
+
+void dm_send_resultEdit(int server_request, const string& sender, int variable, const string& recipientUser) {
+    string vari = std::to_string(variable);
+    string serv_request = std::to_string(server_request);
+    string result = serv_request + " " + sender + " " + vari + " " + recipientUser;
+    for (int i = 0; i < client_count; i++) {
+
+        /*cout << std::to_string(sck_list[i].user_number) << " 에게 보내요" << endl;
+        cout << sck_list[i].user_number << " 값 확인용 " << endl;
+        test_count = std::to_string(sck_list[i].user_number);*/
+        cout << test_count << " 값 확인용 " << endl;
+
+        if (std::to_string(sck_list[i].user_number) == recipientUser) {
+            //if (sck_list[i].login_status == true) {
+            send(sck_list[i].sck, result.c_str(), result.length(), 0);
+            return; // 특정 사용자에게 메시지를 보내면 함수 종료
+            //}
+        }
+    }
     // 사용자를 찾지 못한 경우, 에러 메시지 출력 또는 다른 처리를 추가할 수 있습니다.
 }
 
@@ -760,6 +799,34 @@ void recv_msg(int idx) {
             };
 
 
+
+
+            if (tokens[0] == "1") { 
+                cout << tokens[1] << " 토큰[1]을 아이디값으로 바탕으로 로그인 요청이 들어왔습니다." << endl; 
+                test_count = std::to_string(sck_list[idx].user_number);
+                db_init();
+                db_login();
+            };
+
+            if (tokens[0] == "4") {
+                if (tokens[3] == "N") {
+                    cout << tokens[1] << " [비밀번호 확인 요청] 토큰[1]을 비밀번호값으로 바탕으로 비밀번호 변경 요청이 들어왔습니다." << endl;
+                    test_count = std::to_string(sck_list[idx].user_number);
+                    int result = 0;
+                    db_init();
+                    db_UserEdit(); // 데이터베이스 쿼리 실행
+                    tokens.clear(); // 이전 토큰을 지우고 새로 시작안하면 값 변질되서 제대로 인식 못함 ㅠㅠㅠㅠㅠ
+                }
+                if (tokens[3] == "Y") {
+                    cout << tokens[1] << " [비밀번호 확인 완료] 토큰[1]을 비밀번호값으로 바탕으로 비밀번호 변경 요청이 들어왔습니다." << endl;
+                    test_count = std::to_string(sck_list[idx].user_number);
+                    int result = 0;
+                    db_init();
+                    db_UserEdit_update();
+                    tokens.clear(); // 이전 토큰을 지우고 새로 시작안하면 값 변질되서 제대로 인식 못함 ㅠㅠㅠㅠㅠ
+                }
+            }
+            
         }
         else { //그렇지 않을 경우 퇴장에 대한 신호로 생각하여 퇴장 메시지 전송
             msg = "[공지] " + sck_list[idx].user + " 님이 퇴장했습니다.";
