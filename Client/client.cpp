@@ -17,7 +17,9 @@
 SOCKET client_sock;
 SOCKADDR_IN client_addr = {};
 string my_id, my_nick, my_pw, my_name, my_phonenumber, result;
-string login_User_nick; //로그인한 유저 이름 아이디 저장
+string login_User_nick, login_User_id; //로그인 정보 
+string User_edit_pw; //로그인한 유저 이름 아이디 저장
+string edit_check = "N";
 
 WSADATA wsa;
 // Winsock를 초기화하는 함수. MAKEWORD(2, 2)는 Winsock의 2.2 버전을 사용하겠다는 의미..+
@@ -35,6 +37,13 @@ void socket_init(); // 소켓정보 저장
 void findID(); // 아이디 찾기
 void findPW(); // 패스워드 찾기
 void join();
+bool User_Edit_falg = false;
+void socket_init(); // 소켓정보 저장
+void findID(); // 아이디 찾기
+void findPW(); // 패스워드 찾기
+void chatting(); // 채팅하기 메뉴버튼 3
+//void chat_list(); 
+void User_Edit(); // 정보 수정 메뉴버튼 5
 
 int chat_recv() {
     char buf[MAX_SIZE] = { };
@@ -68,7 +77,8 @@ int chat_recv() {
 
             //void dm_send_result(int server_request, const string & sender, int variable, const string & recipientUser)
             //서버로부터 오는 메시지 형태
-            // ( [0] : 요청 결과 (1=로그인 등) / [1] : 보낸 사람 ( 왠만해선 "server") / [2] : 결과값 (이걸로 로그인 성공 여부) / [3] : 받는 사람 / [4] 디비 유저 이름 )
+            // ( [0] : 요청 결과 (1=로그인 등) / [1] : 보낸 사람 ( 왠만해선 "server") / [2] : 결과값 (이걸로 로그인 성공 여부) 
+            // / [3] : 받는 사람 / [4] 디비 유저 이름 ) / [5] 디비 아이디
             if (tokens[1] != my_nick) {
                 if (tokens[1] == "server") { // 서버로부터 오는 메시지인 
                     //ss >> result; // 결과
@@ -83,7 +93,9 @@ int chat_recv() {
                             cout << " tokens[2] 은 " << tokens[2] << endl;
                             cout << " tokens[3] 은 " << tokens[3] << endl;
                             cout << " tokens[4] 은 " << tokens[4] << endl;
+                            cout << " tokens[5] 은 " << tokens[5] << endl;
                             login_User_nick = tokens[4];
+                            login_User_id = tokens[5];
                             cout << " 내 닉네임 저장 => " << login_User_nick << endl;
                             cout << "==============테스트 정보 출력=============" << endl;
                             // 여기에서 결과(result)를 사용하거나 처리
@@ -542,6 +554,118 @@ void join() {
     }
 }
 
+int edit_recv() {
+    string msg;
+
+    while (!User_Edit_falg) {
+        char buf[MAX_SIZE] = { };
+        ZeroMemory(&buf, MAX_SIZE);
+        if (recv(client_sock, buf, MAX_SIZE, 0) > 0) {
+            cout << "들어온 buf = " << buf << endl;
+
+            // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
+            std::istringstream iss(buf);
+            std::vector<std::string> tokens;
+            std::string token;
+            
+            while (iss >> token) {
+                tokens.push_back(token);
+            }
+
+            // ( [0] : 요청 결과 (1=로그인 등) / [1] : 보낸 사람 ( 왠만해선 "server") / [2] : 결과값 (ID 찾기 성공 여부) / [3] : 받는 사람 / [4] : 결과(찾은 ID) )
+            if (tokens[1] == "server") { // 서버로부터 오는 메시지인 
+                //ss >> result; // 결과
+                if (tokens[0] == "4") {
+                    result = tokens[2];
+                    if (result == "1") {
+                        cout << " 입력하신 비밀번호가 일치합니다. 2초후 변경 페에지." << endl;
+                        Sleep(2000);
+                        system("cls");
+
+                        cout << "변경하실 비밀번호를 입력하세요. ";
+                        string User_input;
+                        string User_request = "4";
+                        edit_check = "Y";
+
+                        cin >> User_input;
+                        User_edit_pw = User_input;
+                        
+                        while (1) {
+                            string msg = User_request + " " + User_edit_pw + " " + login_User_id + " " + edit_check;
+                            send(client_sock, msg.c_str(), msg.length(), 0);
+                            break;
+                        }
+                        
+                        // 여기에서 결과(result)를 사용하거나 처리
+                    }
+
+                    else if (result == "2") {
+                        cout << "비밀번호를 잘못 입력하셨습니다. " << endl;
+                        
+                        Sleep(2000);
+                        break;
+                        User_Edit();
+
+                    }
+                    else if (result == "3") {
+                        cout << "3 비밀번호가 변경되었습니다." << endl;
+                        User_Edit_falg = true;
+                        tokens.clear();
+                        Sleep(2000);
+                        break;
+
+                    }
+                    else {
+                        
+                        cout << "# 159 // 변경실패." << endl;
+                        Sleep(5000);
+                        //User_Edit();
+                    }
+                }
+                else {
+                    
+                    cout << "# 166 // 변경실패." << endl;
+                    Sleep(5000);
+                    User_Edit();
+                }
+            }
+            else {
+                cout << buf << endl;
+            }
+        }
+
+    }
+}
+
+void User_Edit() {
+    while (edit_check == "N") {
+        system("cls");
+        //edit_check 의 기본값 N
+        string User_input;
+        string User_request = "4";
+
+
+        cout << login_User_nick << " 님의 회원 정보 비밀번호 변경 페이지" << endl;
+        cout << "[보안] 현재 비밀번호를 입력하세요. ";
+        cin >> User_input;
+        User_edit_pw = User_input;
+
+        while (1) {
+            string msg = User_request + " " + User_edit_pw + " " + login_User_id + " " + edit_check;
+            send(client_sock, msg.c_str(), msg.length(), 0);
+            break;
+        }
+
+        std::thread th2(edit_recv);       
+
+        th2.join();
+    } 
+}
+
+void chatting() {
+
+}
+
 void socket_init() {
 
     client_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP); // 
@@ -572,32 +696,48 @@ int main()
 
     while (1) {
         //std::thread th2(chat_recv);
-        MainMenu(); // 메인 메뉴 그리기 생성자 호출
+        
+        if (login_flag == false) {
+            MainMenu(); // 메인 메뉴 그리기 생성자 호출
+            int menuCode = MenuDraw(); // 게임시작 버튼 생성 및 y좌표 값 저장
+            //printf("메뉴 코드는 %d ", menuCode); <<로 y좌표 확인 가능
+
+            if (menuCode == 0) {
+                login(); // 로그인 함수 실행                
+            }
+            else if (menuCode == 1) {
+                infoGame();// 아이디찾기        
+            }
+            else if (menuCode == 2) { // 비밀번호 찾기
+                cout << "\n\n\n";
+                //th2.join();
+                WSACleanup();
+                return 0; // 게임 종료
+            }
+            system("cls"); // 콘솔창을 클린 하란 의미
+        }
 
         //로그인 성공했을 때만 트루로 바꿔줬으므로, 로그인 됐을 때만 아이디가 출력됨.
         if (login_flag == true) {
-            cout << "로그인 성공!" << login_User_nick << " 님 환영합니다." << endl;
-        }
-        int menuCode = MenuDraw(); // 게임시작 버튼 생성 및 y좌표 값 저장
-        //printf("메뉴 코드는 %d ", menuCode); <<로 y좌표 확인 가능
+            edit_check = "N";
+            User_Edit_falg = false;
+            MainMenu(); // 메인 메뉴 그리기 생성자 호출
+            cout << "로그인 성공! " << login_User_nick << " 님 환영합니다." << endl;
+            //cout << "주석 처리 필수! 확인용! " << login_User_id << " 님 환영합니다." << endl;
+            cout << edit_check << " 에이디트트 체크 " << User_Edit_falg << "플래기 " << endl;
 
-        if (menuCode == 0) {
-            login(); // 로그인 함수 실행
-        }
-        else if (menuCode == 1) {
-            findID();// 아이디 찾기
-        }
-        else if (menuCode == 2) {
-            findPW();// 비밀번호 찾기
-        }
-        else if (menuCode == 3) {
-            join();// 회원가입
-        }
-        else if (menuCode == 4) {
-            cout << "\n\n\n";
-            //th2.join();
-            WSACleanup();
-            return 0; // 게임 종료
+            int menuCode = Login_MenuDraw();
+
+            if (menuCode == 3) {
+                chatting(); // 대화하기
+            }
+            else if (menuCode == 4) {
+                //chat_list(); // 기존 대화방 불러오기
+            }
+            else if (menuCode == 5) {
+                User_Edit(); // 정보 수정하기
+            }
+            system("cls"); // 콘솔창을 클린 하란 의미
         }
         system("cls"); // 콘솔창을 클린 하란 의미
     }
