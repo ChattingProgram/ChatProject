@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 ﻿  server.cpp
 C:\Users\MHJ\Desktop\github\ChatProject\Server\server.cpp(672,64): warning C4267: '인수': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
 C:\Users\MHJ\Desktop\github\ChatProject\Server\server.cpp(694,64): warning C4267: '인수': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
@@ -33,3 +34,6 @@ mysqlcppconn-static.lib(mysql_resultset_metadata.obj) : warning LNK4099: '' PDB�
 =======
 ﻿  server.vcxproj -> C:\Users\Lenovo\Desktop\github\ChatProject\x64\Release\server.exe
 >>>>>>> 15f40a9 (useredit)
+=======
+﻿  server.vcxproj -> C:\Users\Lenovo\Desktop\github\ChatProject\x64\Release\server.exe
+>>>>>>> 15f40a9b6ef3f77073a32f1d22dceb46e72d53d2

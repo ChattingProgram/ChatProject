@@ -41,6 +41,10 @@ bool User_Edit_falg = false;
 void socket_init(); // 소켓정보 저장
 void findID(); // 아이디 찾기
 void findPW(); // 패스워드 찾기
+bool User_Edit_falg = false;
+void socket_init(); // 소켓정보 저장
+void findID(); // 아이디 찾기
+void findPW(); // 패스워드 찾기
 void chatting(); // 채팅하기 메뉴버튼 3
 //void chat_list(); 
 void User_Edit(); // 정보 수정 메뉴버튼 5
@@ -551,6 +555,89 @@ void join() {
             send(client_sock, buffer, strlen(buffer), 0);
         }
         th.join();
+    }
+}
+
+int edit_recv() {
+    string msg;
+
+    while (!User_Edit_falg) {
+        char buf[MAX_SIZE] = { };
+        ZeroMemory(&buf, MAX_SIZE);
+        if (recv(client_sock, buf, MAX_SIZE, 0) > 0) {
+            cout << "들어온 buf = " << buf << endl;
+
+            // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
+            std::istringstream iss(buf);
+            std::vector<std::string> tokens;
+            std::string token;
+            
+            while (iss >> token) {
+                tokens.push_back(token);
+            }
+
+            // ( [0] : 요청 결과 (1=로그인 등) / [1] : 보낸 사람 ( 왠만해선 "server") / [2] : 결과값 (ID 찾기 성공 여부) / [3] : 받는 사람 / [4] : 결과(찾은 ID) )
+            if (tokens[1] == "server") { // 서버로부터 오는 메시지인 
+                //ss >> result; // 결과
+                if (tokens[0] == "4") {
+                    result = tokens[2];
+                    if (result == "1") {
+                        cout << " 입력하신 비밀번호가 일치합니다. 2초후 변경 페에지." << endl;
+                        Sleep(2000);
+                        system("cls");
+
+                        cout << "변경하실 비밀번호를 입력하세요. ";
+                        string User_input;
+                        string User_request = "4";
+                        edit_check = "Y";
+
+                        cin >> User_input;
+                        User_edit_pw = User_input;
+                        
+                        while (1) {
+                            string msg = User_request + " " + User_edit_pw + " " + login_User_id + " " + edit_check;
+                            send(client_sock, msg.c_str(), msg.length(), 0);
+                            break;
+                        }
+                        
+                        // 여기에서 결과(result)를 사용하거나 처리
+                    }
+
+                    else if (result == "2") {
+                        cout << "비밀번호를 잘못 입력하셨습니다. " << endl;
+                        
+                        Sleep(2000);
+                        break;
+                        User_Edit();
+
+                    }
+                    else if (result == "3") {
+                        cout << "3 비밀번호가 변경되었습니다." << endl;
+                        User_Edit_falg = true;
+                        tokens.clear();
+                        Sleep(2000);
+                        break;
+
+                    }
+                    else {
+                        
+                        cout << "# 159 // 변경실패." << endl;
+                        Sleep(5000);
+                        //User_Edit();
+                    }
+                }
+                else {
+                    
+                    cout << "# 166 // 변경실패." << endl;
+                    Sleep(5000);
+                    User_Edit();
+                }
+            }
+            else {
+                cout << buf << endl;
+            }
+        }
+
     }
 }
 
