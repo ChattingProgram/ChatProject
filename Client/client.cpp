@@ -892,6 +892,119 @@ void friend_list_recv() {
     }
 }
 
+void friend_register() {
+    system("cls");
+
+    while (!code) {
+        
+        while (!register_flag) {
+
+            if (friend_list_flag == false) {
+                string User_request = "71";
+                string msg = User_request + " " + login_User_id;
+                send(client_sock, msg.c_str(), msg.length(), 0);
+            }
+
+            if (friend_list_flag == true) {
+                cout << "추가할 친구의 아이디를 입력하세요. : ";
+                cin >> friend_id;
+
+                string User_request = "7"; //
+                string msg_register = User_request + " " + login_User_id + " " + friend_id;
+                send(client_sock, msg_register.c_str(), msg_register.length(), 0);
+            }
+
+            std::thread th(friend_list_recv);
+
+            th.join();
+        }
+    }
+}
+
+void friend_list_recv() {
+    system("cls");
+
+    while (!register_flag) {
+        char buf[MAX_SIZE] = { };
+        ZeroMemory(&buf, MAX_SIZE);
+        if (recv(client_sock, buf, MAX_SIZE, 0) > 0) {
+            cout << "들어온 buf = " << buf << endl;
+
+            // 문자열을 스트림에 넣고 공백을 기준으로 분할하여 벡터에 저장
+            std::istringstream iss(buf);
+            std::vector<std::string> tokens;
+            std::string token;
+
+            while (iss >> token) {
+                tokens.push_back(token);
+            }
+
+            // 토큰 배열 저장 값 확인용
+            for (int i = 0; i < tokens.size(); i++) {
+                cout << "tokens[" << i << "]" << tokens[i] << endl;
+            }
+            cout << "토큰 크기 : " << tokens.size() << endl;
+
+            // ( [0] : 요청 결과 (1=로그인 등) / [1] : 보낸 사람 ( 왠만해선 "server") / [2] : 결과값 (ID 찾기 성공 여부) / [3] : 받는 사람 / [4] : 찾은 친구 리스트(한줄) )
+            if (tokens[1] == "server") { // 서버로부터 오는 메시지인 
+                //ss >> result; // 결과
+                if (tokens[0] == "71") {
+                    result = tokens[2];
+                    if (result == "1" && tokens.size() > 4) {
+                        cout << "# 707" << endl;
+                        cout << " ※ 현재 등록되어 있는 친구 목록입니다. " << endl;
+                        for (int i = 4; i < tokens.size(); i++) {
+                            cout << i-3 << "친구 ID : " << tokens[i] << endl;
+                        }
+                        friend_list_flag = true;
+                        Sleep(5000);
+                        break;
+                    }
+                    else if (result == "2" ) {
+                        cout << "현재 등록되어 있는 친구가 없습니다." << endl;
+                        cout << "대화를 원하면 친구를 추가해주세요." << endl;
+                        friend_list_flag = true;
+                        Sleep(5000);
+                        break;
+                    }
+                    else if (tokens.size() < 5) {
+                        cout << "현재 등록되어 있는 친구가 없습니다." << endl;
+                        cout << "대화를 원하면 친구를 추가해주세요." << endl;
+                        friend_list_flag = true;
+                        Sleep(5000);
+                        break;
+                    }
+                }
+                else if (tokens[0] == "7") {
+                    result = tokens[2];
+                    if (result == "1") {
+                        cout << "#746" << endl;
+                        cout << "친구 추가가 완료 되었습니다. " << endl;
+                        register_flag = true;
+                        Sleep(5000);
+                        break;
+                    }
+                    else if (result == "2") {
+                        cout << "#751" << endl;
+                        cout << "이미 존재하는 친구입니다." << endl;
+                        register_flag = false;
+                        Sleep(5000);
+                        friend_register();
+                    }
+                    else if (result == "3") {
+                        cout << "#757" << endl;
+                        cout << "존재하지 않는 사용자입니다." << endl;
+                        cout << "ID를 다시 확인해주세요." << endl;
+                        register_flag = false;
+                        Sleep(5000);
+                        friend_register();
+                    }
+                }
+            }
+        }
+    }
+}
+
 void socket_init() {
 
     client_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP); // 
@@ -966,13 +1079,13 @@ int main()
                 chatting();
             }
             else if (menuCode == 1) { // 6 기존 대화방 불러오기
-                //chat_list(); 
+                //chat_list();
             }
             else if (menuCode == 2) { // 7 친구 추가
                 friend_register();
             }
             else if (menuCode == 3) { // 8 비밀 번호 수정
-                User_Edit(); 
+                User_Edit();
             }
             else if (menuCode == 4) {  // 종료 하기
                 cout << "\n\n\n";

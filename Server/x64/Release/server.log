@@ -1,6 +1,9 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 ﻿  server.vcxproj -> C:\Users\Lenovo\Desktop\github\ChatProject\x64\Release\server.exe
 =======
+=======
+>>>>>>> 80717fb20b853f3149ab34bfd49a62a6a4db101f
 ﻿  server.cpp
 C:\Users\MHJ\Desktop\github\ChatProject\Server\server.cpp(800,64): warning C4267: '인수': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
 C:\Users\MHJ\Desktop\github\ChatProject\Server\server.cpp(822,64): warning C4267: '인수': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
@@ -34,4 +37,7 @@ mysqlcppconn-static.lib(mysql_native_statement_wrapper.obj) : warning LNK4099: '
 mysqlcppconn-static.lib(mysql_art_rset_metadata.obj) : warning LNK4099: '' PDB를 'mysqlcppconn-static.lib(mysql_art_rset_metadata.obj)' 또는 ''에서 찾을 수 없습니다. 디버그 정보가 없는 것처럼 개체를 링크합니다.
 mysqlcppconn-static.lib(mysql_resultset_metadata.obj) : warning LNK4099: '' PDB를 'mysqlcppconn-static.lib(mysql_resultset_metadata.obj)' 또는 ''에서 찾을 수 없습니다. 디버그 정보가 없는 것처럼 개체를 링크합니다.
   server.vcxproj -> C:\Users\MHJ\Desktop\github\ChatProject\x64\Release\server.exe
+<<<<<<< HEAD
 >>>>>>> 80717fb (친구 추가 기능)
+=======
+>>>>>>> 80717fb20b853f3149ab34bfd49a62a6a4db101f
