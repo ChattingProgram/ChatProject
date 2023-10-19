@@ -33,14 +33,15 @@ bool findID_flag = false;
 bool findPW_flag = false;
 bool join_flag = false;
 bool join_id_flag = false;
+bool dblist_flag = false;
 void socket_init(); // 소켓정보 저장
 void findID(); // 아이디 찾기
 void findPW(); // 패스워드 찾기
 void join();
 bool User_Edit_falg = false;
-void chatting(); // 채팅하기 메뉴버튼 3
-//void chat_list(); 
-void User_Edit(); // 정보 수정 메뉴버튼 5
+void friend_list();
+
+void User_Edit(); // 정보 수정 메뉴버튼 8
 
 int chat_recv() {
     char buf[MAX_SIZE] = { };
@@ -572,7 +573,7 @@ int edit_recv() {
             // ( [0] : 요청 결과 (1=로그인 등) / [1] : 보낸 사람 ( 왠만해선 "server") / [2] : 결과값 (ID 찾기 성공 여부) / [3] : 받는 사람 / [4] : 결과(찾은 ID) )
             if (tokens[1] == "server") { // 서버로부터 오는 메시지인 
                 //ss >> result; // 결과
-                if (tokens[0] == "4") {
+                if (tokens[0] == "8") {
                     result = tokens[2];
                     if (result == "1") {
                         cout << " 입력하신 비밀번호가 일치합니다. 2초후 변경 페에지." << endl;
@@ -581,7 +582,7 @@ int edit_recv() {
 
                         cout << "변경하실 비밀번호를 입력하세요. ";
                         string User_input;
-                        string User_request = "4";
+                        string User_request = "8";
                         edit_check = "Y";
 
                         cin >> User_input;
@@ -597,8 +598,7 @@ int edit_recv() {
                     }
 
                     else if (result == "2") {
-                        cout << "비밀번호를 잘못 입력하셨습니다. " << endl;
-                        
+                        cout << "비밀번호를 잘못 입력하셨습니다. " << endl;                        
                         Sleep(2000);
                         break;
                         User_Edit();
@@ -640,7 +640,7 @@ void User_Edit() {
         system("cls");
         //edit_check 의 기본값 N
         string User_input;
-        string User_request = "4";
+        string User_request = "8";
 
 
         cout << login_User_nick << " 님의 회원 정보 비밀번호 변경 페이지" << endl;
@@ -660,8 +660,114 @@ void User_Edit() {
     } 
 }
 
-void chatting() {
+int list_recv() {
+    char buf[MAX_SIZE] = { };
+    string msg;
 
+    while (!dblist_flag) {
+        ZeroMemory(&buf, MAX_SIZE);
+        if (recv(client_sock, buf, MAX_SIZE, 0) > 0) {
+            cout << "buf = " << buf << endl;
+            //void dm_send_db(int server_request, const string& sender, const std::string & recipientUser, const std::string& user_2, const std::vector<std::vector<std::string>>&result)
+            // 서버요청 번호 / 보낸사람 : server / 받는사람 : 나 / 같이 대화하는 사람 / 대화 내용
+            
+            std::vector<std::string> tokens;
+            std::vector<std::string> DB_contents;
+
+            std::stringstream ss(buf);
+            std::string token;
+
+            while (std::getline(ss, token, '/')) {
+                // "/"로 분할한 첫 번째 부분은 공백을 기준으로 분리하여 first 벡터에 저장
+                if (tokens.empty()) {
+                    std::stringstream tokens_iss(token);
+                    while (tokens_iss >> token) {
+                        tokens.push_back(token);
+                    }
+                }
+                else {
+                    // "/"로 분할한 나머지 부분은 "\n"을 기준으로 분리하여 저장
+                    std::stringstream DB_contents_iss(token);
+                    std::string line;
+                    while (std::getline(DB_contents_iss, line, '\n')) {
+                        DB_contents.push_back(line);
+                    }
+                }
+            }
+
+            if (tokens[0] == "update") {
+                cout << "업데이트하세요" << endl;
+                break;
+            }
+
+            // tokens 벡터 값 출력
+            //std::cout << "tokens[0]: " << tokens[0] << std::endl;
+            //std::cout << "tokens[1]: " << tokens[1] << std::endl;
+            //std::cout << "tokens[2]: " << tokens[2] << std::endl;
+
+
+            std::cout << tokens[3] << "과 대화하고 있습니다." << endl;
+            cout << " ============================================ " << endl;
+
+            // second 벡터 값 출력
+            for (size_t i = 0; i < DB_contents.size(); ++i) {
+                std::cout << "DB_contents[" << i << "]: " << DB_contents[i] << std::endl;
+            }
+
+            if (tokens[0] == "5") {
+                msg = buf;
+                std::stringstream ss(msg);  // 문자열을 스트림화                
+                cout << buf << endl; // 내가 보낸 게 아닐 경우에만 출력하도록
+            }
+
+            cout << " ============================================ " << endl;
+            cout << " 보낼 메세지를 입력하세요." << endl;
+            while (1) {
+                string User_request = "51";
+                string user_msg;
+                cin >> user_msg;
+                if (user_msg == "exit") {
+                    dblist_flag = true;
+                    break;
+                }
+                string msg = User_request + " " + login_User_id + " " + user_msg;
+                //수정 필요
+                send(client_sock, msg.c_str(), msg.length(), 0);
+                break;
+            }
+            cout << " ============================================ " << endl;
+            //system("cls");
+            
+            //cout << " 스페이스바를 누르면 (로그인된) 메인 화면 이동 " << endl;
+
+            //while (1) {
+            //    if (keyControl() == SUBMIT) { //스페이스바 누르기 전 까지는 이 정보창에 머무릅니다.
+            //        dblist_flag = true;
+            //        break;
+            //    }
+            //}
+            
+        }
+    }
+}
+
+void friend_list() {
+    system("cls");
+
+    while (!dblist_flag) {
+        //cout << "친구 목록을 요청합니다." << endl;
+        string User_request = "5"; //채팅하기 초반부
+
+        while (1) {
+            string msg = User_request + " " + login_User_id ;
+            send(client_sock, msg.c_str(), msg.length(), 0);
+            break;
+        }
+
+        std::thread th2(list_recv);
+        while (1);
+        th2.join();
+    }
 }
 
 void socket_init() {
@@ -704,16 +810,16 @@ int main()
             if (menuCode == 0) {
                 login(); // 로그인 함수 실행                
             }
-            else if (menuCode == 1) { // 아이디 찾기
+            else if (menuCode == 1) { // 1 아이디 찾기
                 findID();
             }
-            else if (menuCode == 2) { // 비밀번호 찾기
+            else if (menuCode == 2) { // 2 비밀번호 찾기
                 findPW();
             }
-            else if (menuCode == 3) { // 회원 가입
+            else if (menuCode == 3) { // 3 회원 가입
                 join();
             }
-            else if (menuCode == 4) { // 회원 가입
+            else if (menuCode == 4) { // 4 회원 가입
                 cout << "\n\n\n";
                 WSACleanup();
                 return 0; // 종료
@@ -725,6 +831,7 @@ int main()
         if (login_flag == true) {
             edit_check = "N";
             User_Edit_falg = false;
+            dblist_flag = false;
             MainMenu(); // 메인 메뉴 그리기 생성자 호출
             cout << "로그인 성공! " << login_User_nick << " 님 환영합니다." << endl;
             //cout << "주석 처리 필수! 확인용! " << login_User_id << " 님 환영합니다." << endl;
@@ -732,16 +839,16 @@ int main()
 
             int menuCode = Login_MenuDraw();
 
-            if (menuCode == 0) { // 대화하기
-                chatting(); 
+            if (menuCode == 0) { // 5 대화하기
+                friend_list();
             }
-            else if (menuCode == 1) { // 기존 대화방 불러오기
+            else if (menuCode == 1) { // 6 기존 대화방 불러오기
                 //chat_list(); 
             }
-            else if (menuCode == 2) { // 친구 추가
+            else if (menuCode == 2) { // 7 친구 추가
                 User_Edit(); 
             }
-            else if (menuCode == 3) { // 비밀 번호 수정
+            else if (menuCode == 3) { // 8 비밀 번호 수정
                 User_Edit(); 
             }
             else if (menuCode == 4) {  // 종료 하기
