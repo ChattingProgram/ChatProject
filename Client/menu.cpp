@@ -79,7 +79,8 @@ int MenuDraw() { //첫 게임 시작화면
     // 오른 : x증가
     // 아래 : y증가
     // 위쪽 : y감소
-
+    // 
+     // 메뉴 코드 0:로그인 / 1:id찾기 / 2:pw찾기 / 3:회원가입 / 4:대화 / 5:기존채팅 / 6:친추 / 7:비번수정
     int x = 36;
     int y = 15;
     gotoxy(x - 2, y); // 35 , 15
@@ -90,6 +91,8 @@ int MenuDraw() { //첫 게임 시작화면
     printf(" PW 찾기 ");
     gotoxy(x, y + 3); // 36, 18
     printf(" 회원 가입 ");
+    gotoxy(x, y + 4); // 36, 19
+    printf(" 프로그램 종료 ");
 
     while (1) {
         int n = keyControl(); //키값 받기
@@ -135,11 +138,15 @@ int Login_MenuDraw() { //첫 게임 시작화면
     int x = 36;
     int y = 15;
     gotoxy(x - 2, y); // 35 , 15
-    printf(">  채팅하기  "); //다른 애들보다 x값이 작은건 > 때문에 자연스럽게 보일려고
+    printf(">  대화하기  "); //다른 애들보다 x값이 작은건 > 때문에 자연스럽게 보일려고
     gotoxy(x, y + 1); // 36 , 16
-    printf(" 기존 대화 목록 ");
+    printf(" 기존 대화방 ");
     gotoxy(x, y + 2); // 36, 17
-    printf(" 정보 수정 ");
+    printf(" 친구 추가 ");
+    gotoxy(x, y + 3); // 36, 18
+    printf(" 비밀번호 수정 ");
+    gotoxy(x, y + 4); // 36, 19
+    printf(" 프로그램 종료 ");
 
     while (1) {
         int n = keyControl(); //키값 받기
@@ -154,7 +161,7 @@ int Login_MenuDraw() { //첫 게임 시작화면
             break;
         }
         case DOWN: {
-            if (y < 17) {
+            if (y < 19) {
                 gotoxy(x - 2, y);
                 printf(" ");
                 gotoxy(x - 2, ++y);
@@ -163,57 +170,7 @@ int Login_MenuDraw() { //첫 게임 시작화면
             break;
         }
         case SUBMIT: {
-            return y - 12; // 시작 위치를 빼서 메뉴 선택을 3, 4, 5 값으로 좁힘.
-        }
-        }//스위치문 닫는 곳
-
-    }
-}
-
-int Login_MenuDraw() { //첫 게임 시작화면
-
-    // 임시 테스트 위치 파악 용도로 사용!
-    //gotoxy(2, 2);
-    //printf("2, 2 위치입니다.");
-    // 임시 테스트 위치 파악 용도로 사용함!
-    // [ 이동방향 ]
-    // 왼쪽 : x감소
-    // 오른 : x증가
-    // 아래 : y증가
-    // 위쪽 : y감소
-
-    int x = 36;
-    int y = 15;
-    gotoxy(x - 2, y); // 35 , 15
-    printf(">  채팅하기  "); //다른 애들보다 x값이 작은건 > 때문에 자연스럽게 보일려고
-    gotoxy(x, y + 1); // 36 , 16
-    printf(" 기존 대화 목록 ");
-    gotoxy(x, y + 2); // 36, 17
-    printf(" 정보 수정 ");
-
-    while (1) {
-        int n = keyControl(); //키값 받기
-        switch (n) {
-        case UP: {
-            if (y > 15) {
-                gotoxy(x - 2, y);
-                printf(" ");
-                gotoxy(x - 2, --y);
-                printf(">");
-            }
-            break;
-        }
-        case DOWN: {
-            if (y < 17) {
-                gotoxy(x - 2, y);
-                printf(" ");
-                gotoxy(x - 2, ++y);
-                printf(">");
-            }
-            break;
-        }
-        case SUBMIT: {
-            return y - 12; // 시작 위치를 빼서 메뉴 선택을 3, 4, 5 값으로 좁힘.
+            return y - 15; // 시작 위치를 빼서 메뉴 선택을 3, 4, 5 값으로 좁힘.
         }
         }//스위치문 닫는 곳
 
