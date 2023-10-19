@@ -77,7 +77,6 @@ void db_roomUserNameQuery(); //채팅방에 있는 유저 이름 가져오기
 void db_messageSend(); // 메시지 전송 저장
 void db_join(); //회원가입
 void db_join_check(); // 회원가입 전 아이디 체크
-void db_UserEdit(); // 회원 정보 수정부분
 void db_UserEdit(); // 회원 정보 수정할 때 비밀번호 확인문
 void db_UserEdit_update(); // 회원 정보 수정 업데이트문
 void db_selectQuery(); //db 셀랙트문
@@ -86,7 +85,9 @@ void db_countuser(); // (1) 유저 수 몇 명인지? (서버 공지로 활용)
 void db_userlist(); // (3) 유저 목록 출력
 void db_findID(); // (7) 유저 정보 찾기
 void db_callMessage(); // 기존 채팅방 불러오기
+void send_msg_2(const string& msg); 
 
+void dm_send_db(int server_request, const string& sender, const std::string& recipientUser, const std::string& user_2, const std::vector<std::vector<std::string>>& result);
 
 void db_init() {
     try {
@@ -217,13 +218,16 @@ void db_messageSend() {
     pstmt = con->prepareStatement("INSERT INTO message_room (number, user_id, content, time, chatroom_num) values(?,?,?,?,?)"); // INSERT
 
     pstmt->setInt(1, number + 1); //메시지 번호
-    pstmt->setString(2, "abcd"); // 보낸 사람 아이디
-    pstmt->setString(3, "hihihihi"); // 보낸 사람 아이디
+    pstmt->setString(2, tokens[1]); // 보낸 사람 아이디
+    pstmt->setString(3, tokens[2]); // 보낸 메세지
     pstmt->setString(4, "2023-10-11"); // 날짜
     pstmt->setInt(5, 1); //챗 룸 넘버 
     pstmt->execute(); // 이거 있어야지 디비에 저장됨.
 
     cout << "메세지가 저장되었습니다." << endl;
+    // 
+    string msg = "update";
+    send_msg_2(msg);
     delete stmt;
     // MySQL Connector/C++ 정리
 }
@@ -416,14 +420,14 @@ void db_UserEdit() {
             //dm_send_result(server_request, "server", result, test_count, db_name, db_id);
             int result = 1;
             int str_test_count = stoi(test_count);
-            dm_send_resultEdit(4, "server", result, test_count);
+            dm_send_resultEdit(8, "server", result, test_count);
             cout << " 400라인 " << result << " and " << test_count << endl;
         }
         else {
             cout << "입력한 비밀번호가 일치하지 않습니다." << endl;
             int result = 2;
             int str_test_count = stoi(test_count);
-            dm_send_resultEdit(4, "server", result, test_count);
+            dm_send_resultEdit(8, "server", result, test_count);
             cout << " 400라인 " << result << " and " << test_count << endl;
 
         }
@@ -449,29 +453,92 @@ void db_UserEdit_update() {
     //dm_send_result(server_request, "server", result, test_count, db_name, db_id);
     int result = 3;
     int str_test_count = stoi(test_count);
-    dm_send_resultEdit(4, "server", result, test_count);
+    dm_send_resultEdit(8, "server", result, test_count);
     cout << " 400라인 " << result << " and " << test_count << endl;
 
 }
 
 void db_selectQuery_ver2() {
+    std::vector<std::vector<std::string>> result;
+    cout << "친구 목록을 보냅니다." << endl;
     db_init();
     // 데이터베이스 쿼리 실행
     stmt = con->createStatement();
-    res = stmt->executeQuery("SELECT * FROM inventory"); // from 뒤에는 실제로 mysql 에서 사용하는 테이블의 이름을 써야한다.
+    res = stmt->executeQuery("SELECT * FROM message_room");
+    string a = "1";
+    string user_2;  
 
-    delete stmt;
-
+    res2 = stmt->executeQuery("SELECT user_id_1, user_id_2 FROM chatroom WHERE room_num = '" + a + "'");
+    cout << "토큰즈원" <<  tokens[1] << endl;
     // 결과 출력
+    while (res2->next()) {
+        //cout << "현재 접속중인 방 번호 " << res2->getString("room_num") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        cout << "유저 1의 ID : " << res2->getString("user_id_1") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        cout << "유저 2의 ID : " << res2->getString("user_id_2") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        string temp1 = res2->getString("user_id_1");
+        if (tokens[1] == temp1) {
+            user_2 = res2->getString("user_id_2");
+        }
+        else if (tokens[1] != temp1) {
+            user_2 = res2->getString("user_id_1");
+        }
+    }
+    
+
     while (res->next()) {
-        cout << "Column1: " << res->getString("name") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
-        cout << "Column2: " << res->getString("quantity") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        std::vector<std::string> row;
+        row.push_back(res->getString("number"));
+        row.push_back(res->getString("user_id"));
+        row.push_back(res->getString("content"));
+        row.push_back(res->getString("time"));
+        row.push_back(res->getString("chatroom_num"));
+        result.push_back(row);
     }
 
-    // MySQL Connector/C++ 정리
-    delete pstmt;
-    delete con;
+    for (const auto& row : result) {
+        for (const std::string& value : row) {
+            std::cout << value << " ";
+        }
+        std::cout << "백터 테스트 " << std::endl;
+    }
+
+    //cout << "\n\n" << endl;
+    //int a = result.size();
+    //const std::vector<std::string>& row = result[3];
+    //for (const std::string& value : row) {
+    //    std::cout << value << " ";
+    //}
+    //cout << "\n" << endl;
+    //cout << "리절트 백터는 크기가 " << a << " 입니다." << endl;
+    //dm_send_findResult(server_request, "server", result, tokens[1], db_pw);\
+
+    dm_send_db(5, "server" , test_count, user_2, result);
+
+    delete stmt;
 }
+
+void dm_send_db(int server_request, const string& sender, const std::string & recipientUser, const std::string& user_2, const std::vector<std::vector<std::string>>&result) {
+    string serv_request = std::to_string(server_request);
+    std::string resultStr;
+    for (const std::vector<std::string>& row : result) {
+        for (const std::string& value : row) {
+            resultStr += value + " "; // 공백을 구분자로 사용
+        }
+        resultStr += "\n"; // 각 행을 개행 문자로 구분
+    }
+    string msg = serv_request + " " + sender + " " + recipientUser + " " + user_2 + "/" + resultStr;
+    for (int i = 0; i < client_count; i++) {
+        if (std::to_string(sck_list[i].user_number) == recipientUser) {
+            //if (sck_list[i].login_status == true) {
+            send(sck_list[i].sck, msg.c_str(), msg.length(), 0);
+            return; // 특정 사용자에게 메시지를 보내면 함수 종료
+            //}
+        }
+    }
+
+    // 사용자를 찾지 못한 경우, 에러 메시지 출력 또는 다른 처리를 추가할 수 있습니다.
+}
+
 
 void db_userlist() {
     db_init();
@@ -604,6 +671,7 @@ int main() {
             string text, msg = "";
             std::getline(cin, text);
             const char* buf = text.c_str();
+            //msg = buf;
             msg = server_sock.user + " : " + buf;
             send_msg(msg.c_str());
         }
@@ -621,7 +689,7 @@ int main() {
         cout << "프로그램 종료. (Error code : " << code << ")";
     }
 
-
+    
     WSACleanup();
     return 0;
 
@@ -642,7 +710,7 @@ void server_init() {
     listen(server_sock.sck, SOMAXCONN); // 소켓을 대기 상태로 기다린다.
     server_sock.user = "server";
     cout << "Server On" << endl;
-
+    //db_selectQuery_ver2();
 }
 
 void add_client() {
@@ -752,6 +820,12 @@ void dm_send_msg(const string& sender, const char* msg, const string& recipientU
     // 사용자를 찾지 못한 경우, 에러 메시지 출력 또는 다른 처리를 추가할 수 있습니다.
 }
 
+void send_msg_2(const string& msg) {
+    for (int i = 0; i < client_count; i++) { // 접속해 있는 모든 client에게 메시지 전송
+        send(sck_list[i].sck, msg.c_str(), msg.length(), 0);
+    }
+    return;
+}
 
 void send_msg(const char* msg) {
     for (int i = 0; i < client_count; i++) { // 접속해 있는 모든 client에게 메시지 전송
@@ -780,12 +854,30 @@ void recv_msg(int idx) {
             while (iss >> token) {
                 tokens.push_back(token);
             }
+
+            // 토큰0 기준으로 1:로그인 / 2:id찾기 / 3:pw찾기 / 4:회원가입 / 5:대화 / 6:기존채팅 / 7:친추 / 8:비번수정
+            // tokens[0] == 1 이면 로그인 요청
             if (tokens[0] == "1") { 
                 cout << tokens[1] << " 토큰[1]을 아이디값으로 바탕으로 로그인 요청이 들어왔습니다." << endl;
-
                 db_init();
                 db_login();
             };
+
+            // tokens[0] == 2 이면 아이디 찾기 요청
+            if (tokens[0] == "2") {
+                cout << tokens[1] << " 회원이 아이디 찾기 기능을 요청했습니다." << endl;
+                db_init();
+                db_findID();
+            };
+
+            // tokens[0] == 3 이면 비밀번호 찾기 요청
+            if (tokens[0] == "3") {
+                cout << tokens[1] << " 회원이 비밀번호 찾기 기능을 요청했습니다." << endl;
+                db_init();
+                db_findPW();
+            };
+
+            // tokens[0] == 4 이면 회원가입 요청
             if (tokens[0] == "4") { 
                 cout << " 회원가입 요청이 들어왔습니다." << endl;
                 db_init();
@@ -794,22 +886,38 @@ void recv_msg(int idx) {
             if (tokens[0] == "41") { 
                 cout << " 아이디 확인 요청이 들어왔습니다." << endl;
                 db_init();
-                db_join_check();
+                db_join_check();                
+            };
+
+            // tokens[0] == 5 이면 대화기능 요청
+            if (tokens[0] == "5") {
+                cout << tokens[1] << " 회원이 친구 목록을 요청했습니다." << endl;
+                db_init();
+                db_selectQuery_ver2();
+            };
+            // tokens[0] == 51 이면 보낸 메시지 저장 요청
+            if (tokens[0] == "51") {
+                cout << tokens[1] << " 회원이 친구 목록을 요청했습니다." << endl;
+                db_messageSend();
+                db_selectQuery_ver2();
+            };
+
+            // tokens[0] == 6 이면 기존 채팅방 요청
+            if (tokens[0] == "6") {
+                cout << tokens[1] << " 회원이 유저의 기본 채팅방을 요청했습니다." << endl;
+                
+            };
+
+            // tokens[0] == 7 이면 친구 추가 기능 요청
+            if (tokens[0] == "7") {
+                cout << tokens[1] << " 회원이 친구 추가 기능을 요청했습니다." << endl;
                 
             };
 
 
-
-
-            if (tokens[0] == "1") { 
-                cout << tokens[1] << " 토큰[1]을 아이디값으로 바탕으로 로그인 요청이 들어왔습니다." << endl; 
-                test_count = std::to_string(sck_list[idx].user_number);
-                db_init();
-                db_login();
-            };
-
-            if (tokens[0] == "4") {
-                if (tokens[3] == "N") {
+            // tokens[0] == 8 이면 비밀번호 수정 요청
+            if (tokens[0] == "8") {
+                if (tokens[3] == "N") { //tokens[0] 이 8 이면서 tokens[3] 의 값은 Y와 N으로 비밀번호 확인 결과를 결정합니다.
                     cout << tokens[1] << " [비밀번호 확인 요청] 토큰[1]을 비밀번호값으로 바탕으로 비밀번호 변경 요청이 들어왔습니다." << endl;
                     test_count = std::to_string(sck_list[idx].user_number);
                     int result = 0;
