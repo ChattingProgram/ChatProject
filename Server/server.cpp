@@ -86,6 +86,8 @@ void db_userlist(); // (3) 유저 목록 출력
 void db_findID(); // (7) 유저 정보 찾기
 void db_callMessage(); // 기존 채팅방 불러오기
 void send_msg_2(const string& msg); 
+void db_friend_list();
+void db_friend_register();
 
 void dm_send_db(int server_request, const string& sender, const std::string& recipientUser, const std::string& user_2, const std::vector<std::vector<std::string>>& result);
 
@@ -369,14 +371,10 @@ void db_join() {
 }
 
 void db_join_check() {
-    
-    cout << "#366 여기?" << endl;
-
+   
     pstmt = con->prepareStatement("SELECT user_id FROM users WHERE user_id = ?");
     pstmt->setString(1, tokens[1]);
     res = pstmt->executeQuery();
-
-    cout << "#372 여기는???" << endl;
 
     if (res->next()) {
         cout << "#374 입력한 아이디 존재" << endl;
@@ -384,7 +382,6 @@ void db_join_check() {
         int result = 4; // 아이디 체크 실패
         int server_request = 4;
         int str_test_count = stoi(test_count);
-        cout << "#384 혹시 여기?" << endl;
         dm_send_result(server_request, "server", result, test_count, tokens[1],"temp");
     }
 
@@ -393,7 +390,6 @@ void db_join_check() {
         int result = 3; // 아이디 체크 성공 결과값
         int server_request = 4;
         int str_test_count = stoi(test_count);
-        cout << "#389 혹시 여기????" << endl;
         dm_send_result(server_request, "server", result, test_count, tokens[1],"temp");
     }
 }
@@ -573,14 +569,16 @@ void db_findID() {
             int result = 1; // 성공 시 결과값
             int server_request = 2; // ID 찾기 번호
             cout << " 485" << endl;
-            dm_send_findResult(server_request, "server", result, tokens[1], db_id); // findValue = user_id
+            int str_test_count = stoi(test_count);
+            dm_send_findResult(server_request, "server", result, test_count, db_id); // findValue = user_id
         }
         else {
             int result = 2; // 실패 시 결과값
             int server_request = 2; // ID 찾기 번호
             string fail = "실패";
             cout << " 492" << endl;
-            dm_send_findResult(server_request, "server", result, tokens[1], fail); // findValue = fail
+            int str_test_count = stoi(test_count);
+            dm_send_findResult(server_request, "server", result, test_count, fail); // findValue = fail
         }
     }
     else {
@@ -588,7 +586,8 @@ void db_findID() {
         int server_request = 2; // ID 찾기 번호
         string fail = "실패";
         cout << " 500" << endl;
-        dm_send_findResult(server_request, "server", result, tokens[1], fail); // findValue = fail
+        int str_test_count = stoi(test_count);
+        dm_send_findResult(server_request, "server", result, test_count, fail); // findValue = fail
     }
 }
 
@@ -615,14 +614,16 @@ void db_findPW() {
             int result = 1; // 성공 시 결과값
             int server_request = 3; // PW 찾기 번호
             cout << " 565" << endl;
-            dm_send_findResult(server_request, "server", result, tokens[1], db_pw); // findValue = user_id
+            int str_test_count = stoi(test_count);
+            dm_send_findResult(server_request, "server", result, test_count, db_pw); // findValue = user_id
         }
         else {
             int result = 2; // 실패 시 결과값
             int server_request = 3; // PW 찾기 번호
             string fail = "실패";
             cout << " 572" << endl;
-            dm_send_findResult(server_request, "server", result, tokens[1], fail); // findValue = fail
+            int str_test_count = stoi(test_count);
+            dm_send_findResult(server_request, "server", result, test_count, fail); // findValue = fail
         }
     }
     else {
@@ -630,7 +631,8 @@ void db_findPW() {
         int server_request = 2; // ID 찾기 번호
         string fail = "실패";
         cout << " 500" << endl;
-        dm_send_findResult(server_request, "server", result, tokens[1], fail); // findValue = fail
+        int str_test_count = stoi(test_count);
+        dm_send_findResult(server_request, "server", result, test_count, fail); // findValue = fail
     }
 }
 
@@ -649,6 +651,93 @@ void db_callMessage() {
         cout << "(" << res->getString("time") << ")" << endl;
     }
 
+}
+
+void db_friend_list() {
+
+    cout << "tokens[1] : " << tokens[1] << endl;
+    
+    std::vector<std::string> f_lists; // 친구 목록 저장할 배열
+    std::string f_list;
+
+    pstmt = con->prepareStatement("SELECT GROUP_CONCAT(friend_id SEPARATOR ' ') FROM friend_list WHERE user_id = ?");
+    pstmt->setString(1, tokens[1]);
+    res = pstmt->executeQuery();
+
+    cout << "# 598 여기 됨?" << endl;
+    if (res->next()) {
+        cout << res->getString(1) << endl;
+        f_list = res->getString(1); // 쿼리문 결과 저장
+        cout << f_list << endl;
+        f_lists.push_back(f_list); // 배열에 쿼리문 결과 삽입
+
+        cout << f_lists[0] << endl;
+        cout << f_lists.size() << endl;
+
+        int result = 1;
+        int server_request = 71;
+        cout << "# 618" << endl;
+        int str_test_count = stoi(test_count);
+        dm_send_findResult(server_request, "server", result, test_count, f_lists[0]); // 
+    }
+    else {
+        int result = 2;
+        int server_request = 71;
+        cout << "# 625" << endl;
+        int str_test_count = stoi(test_count);
+        dm_send_findResult(server_request, "server", result, test_count, "temp"); // 
+    }
+}
+
+void db_friend_register() {
+
+    pstmt = con->prepareStatement("SELECT user_id FROM users WHERE user_id = ?");
+    pstmt->setString(1, tokens[2]);
+    res = pstmt->executeQuery();
+
+    // 유저 테이블에 입력한 친구 아이디가 존재하면
+    if (res->next()) {
+        pstmt = con->prepareStatement("SELECT friend_id FROM friend_list WHERE user_id = ? and friend_id = ?");
+        pstmt->setString(1, tokens[1]);
+        pstmt->setString(2, tokens[2]);
+        res = pstmt->executeQuery();
+
+        cout << "#645 여기 ?" << endl;
+        // 친구 리스트 테이블에 친구 아이디가 이미 존재한다면
+        if (res->next()) {
+            int result = 2;
+            int server_request = 7;
+            cout << "#649" << endl;
+            int str_test_count = stoi(test_count);
+            dm_send_result(server_request, "server", result, test_count, "temp", tokens[1]);
+        }
+        else {
+            pstmt = con->prepareStatement("INSERT INTO friend_list (user_id, friend_id) VALUES (?, ?)");
+            pstmt->setString(1, tokens[1]);
+            pstmt->setString(2, tokens[2]);
+            res = pstmt->executeQuery();
+            pstmt2 = con->prepareStatement("INSERT INTO friend_list (user_id, friend_id) VALUES (?, ?)");
+            pstmt2->setString(1, tokens[2]);
+            pstmt2->setString(2, tokens[1]);
+            res2 = pstmt2->executeQuery();
+            cout << "#664" << endl;
+            
+			int result = 1;
+			int server_request = 7;
+			cout << "#662" << endl;
+			int str_test_count = stoi(test_count);
+			dm_send_result(server_request, "server", result, test_count, "temp", tokens[1]);
+
+        }
+    }
+    // 유저 테이블에 입력한 친구 아이디가 존재하지 않을 때
+    else {
+        int result = 3;
+        int server_request = 7;
+        cout << "#671" << endl;
+        int str_test_count = stoi(test_count);
+        dm_send_result(server_request, "server", result, test_count, "temp", tokens[1]);
+    }
 
 }
 
@@ -845,45 +934,38 @@ void recv_msg(int idx) {
             msg = buf; //sck_list[idx].user
             cout << sck_list[idx].user_number << " 랑 buf 는 = " << msg << endl;
             //send_msg(msg.c_str());
-
             std::istringstream iss(buf);
-
             tokens.clear(); // 이전 토큰을 지우고 새로 시작안하면 값 변질되서 제대로 인식 못함 ㅠㅠㅠㅠㅠ
             test_count = std::to_string(sck_list[idx].user_number);
-
             while (iss >> token) {
                 tokens.push_back(token);
             }
-
             // 토큰0 기준으로 1:로그인 / 2:id찾기 / 3:pw찾기 / 4:회원가입 / 5:대화 / 6:기존채팅 / 7:친추 / 8:비번수정
             // tokens[0] == 1 이면 로그인 요청
-            if (tokens[0] == "1") { 
+            if (tokens[0] == "1") {
                 cout << tokens[1] << " 토큰[1]을 아이디값으로 바탕으로 로그인 요청이 들어왔습니다." << endl;
                 db_init();
                 db_login();
             };
-
             // tokens[0] == 2 이면 아이디 찾기 요청
             if (tokens[0] == "2") {
                 cout << tokens[1] << " 회원이 아이디 찾기 기능을 요청했습니다." << endl;
                 db_init();
                 db_findID();
             };
-
             // tokens[0] == 3 이면 비밀번호 찾기 요청
             if (tokens[0] == "3") {
                 cout << tokens[1] << " 회원이 비밀번호 찾기 기능을 요청했습니다." << endl;
                 db_init();
                 db_findPW();
             };
-
             // tokens[0] == 4 이면 회원가입 요청
-            if (tokens[0] == "4") { 
+            if (tokens[0] == "4") {
                 cout << " 회원가입 요청이 들어왔습니다." << endl;
                 db_init();
                 db_join();
             };
-            if (tokens[0] == "41") { 
+            if (tokens[0] == "41") {
                 cout << " 아이디 확인 요청이 들어왔습니다." << endl;
                 db_init();
                 db_join_check();                
@@ -909,12 +991,17 @@ void recv_msg(int idx) {
             };
 
             // tokens[0] == 7 이면 친구 추가 기능 요청
+            if (tokens[0] == "71") {
+                cout << tokens[1] << " 회원이 친구 목록 확인 기능을 요청했습니다." << endl;
+                db_init();
+                db_friend_list();
+            };
+            
             if (tokens[0] == "7") {
                 cout << tokens[1] << " 회원이 친구 추가 기능을 요청했습니다." << endl;
-                
+                db_init();
+                db_friend_register();
             };
-
-
             // tokens[0] == 8 이면 비밀번호 수정 요청
             if (tokens[0] == "8") {
                 if (tokens[3] == "N") { //tokens[0] 이 8 이면서 tokens[3] 의 값은 Y와 N으로 비밀번호 확인 결과를 결정합니다.
@@ -934,7 +1021,6 @@ void recv_msg(int idx) {
                     tokens.clear(); // 이전 토큰을 지우고 새로 시작안하면 값 변질되서 제대로 인식 못함 ㅠㅠㅠㅠㅠ
                 }
             }
-            
         }
         else { //그렇지 않을 경우 퇴장에 대한 신호로 생각하여 퇴장 메시지 전송
             msg = "[공지] " + sck_list[idx].user + " 님이 퇴장했습니다.";
