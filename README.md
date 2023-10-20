@@ -111,10 +111,11 @@ db_login(), db_countuser(), db_userlist(), db_findID(), db_callMessage()
 
 ✨ 2023-10-20 (FRI)
 
-1. 
+1. 채팅 실시간 소통 관련 쓰레드 오류 수정
 
-2. 
-   
+2. C++에서 SQL CREATE 자동 생성 및 메시지 관리 테이블 규칙 생성
+
+
 -------☆-----------☆-------
 
 ✨ 2023-10-21 ~ 22 (SAT ~ SUN)
