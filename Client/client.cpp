@@ -773,7 +773,26 @@ void friend_list() {
             
         }
         cout << " =====================4======================= " << endl;
+    }
+}
 
+void friend_list() {
+    system("cls");
+
+    while (!dblist_flag) {
+        //cout << "친구 목록을 요청합니다." << endl;
+        string User_request = "5"; //채팅하기 초반부
+
+        while (1) {
+            string msg = User_request + " " + login_User_id ;
+            send(client_sock, msg.c_str(), msg.length(), 0);
+            break;
+        }
+
+        std::thread th2(list_recv);
+
+
+        while (1);
         th2.join();
 
 
