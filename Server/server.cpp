@@ -221,17 +221,23 @@ void db_roomUserNameQuery() {
 // 메시지 전송 저장
 void db_messageSend() {
     db_init();
-    //mtx.lock();
+
+    cout << "225 # chatroom_num = " << tokens[3] << endl;
+    cout << "226 # tokens[1] 접속중인 아이디 = " << tokens[1] << endl;
     // 데이터베이스 쿼리 실행
-    stmt = con->createStatement();
-    res = stmt->executeQuery("SELECT * FROM message_room_1");
-    int number = 0;
+    string query_msg = "message_room_" + tokens[3];
+    cout << "확인용 : " << query_msg << endl;
+
+    std::string query = "INSERT INTO " + query_msg + " (number, user_id, content, time) VALUES(null, ? , ? , now())";
+
+    cout << "# 925 query = " << query << endl;
+    /*int number = 0;
     while (res->next()) {
         number += 1;
-    }
+    }*/
     //cout << " num " << number << endl; //디비 번호 확인.
 
-    pstmt = con->prepareStatement("INSERT INTO message_room_1 (number, user_id, content, time) values(null,?,?,now())"); // INSERT
+    pstmt = con->prepareStatement(query); // INSERT
     pstmt->setString(1, tokens[1]); // 보낸 사람 아이디
     pstmt->setString(2, tokens[2]); // 보낸 메세지
     pstmt->execute(); // 이거 있어야지 디비에 저장됨.
@@ -243,11 +249,16 @@ void db_messageSend() {
     //
     std::vector<std::vector<std::string>> result;
     stmt = con->createStatement();
-    res3 = stmt->executeQuery("SELECT * FROM message_room_1");
-    string a = "1"; 
+    std::string query3 = "SELECT number, user_id, content, time FROM " + query_msg;
+    pstmt2 = con->prepareStatement(query3);
+    res3 = pstmt2->executeQuery();
+
     string user_2;
-    res2 = stmt->executeQuery("SELECT user_id_1, user_id_2 FROM chatroom WHERE room_num = '" + a + "'");
-    cout << "토큰즈원 " << tokens[1] << endl;
+    std::string query2 = "SELECT user_id_1, user_id_2 FROM chatroom WHERE room_num = ?";
+    pstmt2 = con->prepareStatement(query2);
+    pstmt2->setString(1, tokens[3]); // tokens[3]를 파라미터로 전달
+    res2 = pstmt2->executeQuery();
+
     // 결과 출력
     while (res2->next()) {
         //cout << "현재 접속중인 방 번호 " << res2->getString("room_num") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
@@ -375,7 +386,7 @@ void db_countuser() {
 //회원가입
 void db_join() {
 
-    pstmt = con->prepareStatement("SELECT user_id, name, pw, phonenumber, nickname, friend_name FROM users WHERE user_id = ?");
+    pstmt = con->prepareStatement("SELECT user_id, name, pw, phonenumber, nickname FROM users WHERE user_id = ?");
     pstmt->setString(1, tokens[1]);
     res = pstmt->executeQuery();
     cout << "#323 여기까지는?" << endl;
@@ -392,7 +403,7 @@ void db_join() {
         cout << "#334 입력한 아이디 없음" << endl;
 
         stmt = con->createStatement();
-        pstmt = con->prepareStatement("INSERT INTO users (user_id, name, pw, phonenumber, nickname, friend_name) values(?,?,?,?,?,?)"); // INSERT
+        pstmt = con->prepareStatement("INSERT INTO users (user_id, name, pw, phonenumber, nickname ) values(?,?,?,?,?)"); // INSERT
         cout << "#336 여기?" << endl;
 
         pstmt->setString(1, tokens[1]); //아이디
@@ -400,7 +411,6 @@ void db_join() {
         pstmt->setString(3, tokens[3]); // 비밀번호
         pstmt->setString(4, tokens[4]); // 전화번호
         pstmt->setString(5, tokens[5]); // 닉네임
-        pstmt->setString(6, " "); //친구목록
 
         pstmt->execute(); // 이거 있어야지 디비에 저장됨.
 
