@@ -120,9 +120,11 @@ db_login(), db_countuser(), db_userlist(), db_findID(), db_callMessage()
 
 ✨ 2023-10-21 ~ 22 (SAT ~ SUN)
 
-1. 
+1. 채팅 실시간 소통 관련 쓰레드 오류 수정
 
-2. 
+2. PPT 발표 준비 (프로젝트의 전반적인 프로세스 과정 정립, 코드 정리)
+
+3. 서버 종료 문제 해결 (CREATE TABLE ~)
 
 
 -------☆-----------☆-------
