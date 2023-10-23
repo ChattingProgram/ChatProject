@@ -375,7 +375,7 @@ void db_countuser() {
 //회원가입
 void db_join() {
 
-    pstmt = con->prepareStatement("SELECT user_id, name, pw, phonenumber, nickname, friend_name FROM users WHERE user_id = ?");
+    pstmt = con->prepareStatement("SELECT user_id, name, pw, phonenumber, nickname FROM users WHERE user_id = ?");
     pstmt->setString(1, tokens[1]);
     res = pstmt->executeQuery();
     cout << "#323 여기까지는?" << endl;
@@ -392,7 +392,7 @@ void db_join() {
         cout << "#334 입력한 아이디 없음" << endl;
 
         stmt = con->createStatement();
-        pstmt = con->prepareStatement("INSERT INTO users (user_id, name, pw, phonenumber, nickname, friend_name) values(?,?,?,?,?,?)"); // INSERT
+        pstmt = con->prepareStatement("INSERT INTO users (user_id, name, pw, phonenumber, nickname) values(?,?,?,?,?)"); // INSERT
         cout << "#336 여기?" << endl;
 
         pstmt->setString(1, tokens[1]); //아이디
@@ -400,7 +400,6 @@ void db_join() {
         pstmt->setString(3, tokens[3]); // 비밀번호
         pstmt->setString(4, tokens[4]); // 전화번호
         pstmt->setString(5, tokens[5]); // 닉네임
-        pstmt->setString(6, " "); //친구목록
 
         pstmt->execute(); // 이거 있어야지 디비에 저장됨.
 
@@ -889,8 +888,7 @@ void db_chat_list() {
 
 void db_chat_room() {
 
-    string chatroom_num, num, create_num;
-    int a;
+    string chatroom_num, num, create_num, count;
 
 	pstmt = con->prepareStatement("SELECT room_num FROM chatroom WHERE user_id_1 = ? and user_id_2 = ? or user_id_1 = ? and user_id_2 = ?");
 	pstmt->setString(1, tokens[1]);
@@ -907,22 +905,18 @@ void db_chat_room() {
         dm_send_chat_user(601, "server", test_count, tokens[2], chatroom_num);
         delete stmt;
 
-	}	else {
+	}
+    else {
         stmt = con->createStatement();
-        pstmt = con->prepareStatement("INSERT INTO chatroom VALUES (null, ?, ?)");
+        pstmt = con->prepareStatement("INSERT INTO chatroom VALUES (null, ?, ?)"); // 메세지 DB 생성 전 chatlist에 번호 새로 생성
         pstmt->setString(1, tokens[1]); //로그인해서 요청한 사람
         pstmt->setString(2, tokens[2]); //그 사람이 선택한 사람
         pstmt->executeQuery();
 		cout << " # 902" << endl;
 
-        db_create_chatroom(tokens[1], tokens[2]);
-
-		int result = 4; // DB에 대화방 생성 성공 결과값
-		int server_request = 5;
-		cout << "# 908" << endl;
-		int str_test_count = stoi(test_count);
-		dm_send_result(server_request, "server", result, test_count, "temp", tokens[1]);
-	}
+        db_create_chatroom(tokens[1], tokens[2]); // 메세지 저장할 DB 생성
+    
+    }
 
 }
 
@@ -935,7 +929,7 @@ void db_create_chatroom(string user_id_1, string user_id_2) {
     
     if (res->next()) {
         string create_num = res->getString(1);
-        cout << " # 924 결과 : " << create_num << endl;
+        cout << " # 942 결과 : " << create_num << endl;
         string msg = "message_room_" + create_num;
         string query = "CREATE TABLE " + msg + " (number int primary key auto_increment, user_id VARCHAR(10) not null, content VARCHAR(255) not null, time datetime not null)";
 
@@ -945,9 +939,15 @@ void db_create_chatroom(string user_id_1, string user_id_2) {
         delete stmt;
         delete con;
 
-        cout << " # 934 두 번째 확인" << endl;
+        cout << " # 952 두 번째 확인" << endl;
+
+        cout << "확인용 : " << create_num << endl;
+        cout << "# 925" << endl;
+
+        dm_send_chat_user(601, "server", test_count, tokens[2], create_num);
     }
 }
+
 
 int main() {
     WSADATA wsa;
