@@ -269,7 +269,7 @@ void db_messageSend() {
         result.push_back(row);
     }
     dm_send_db(5, "server", "0", user_2, result);
-    Sleep(1000);
+    Sleep(200);
     dm_send_db(5, "server", "1", user_2, result);
     //dm_send_dbup(52, "server", "0", msg, msg);
     //Sleep(1000);
@@ -1240,14 +1240,14 @@ void recv_msg(int idx) {
 
             // tokens[0] == 5 이면 대화기능 요청
             if (tokens[0] == "5") {
-                Sleep(1000);
+                Sleep(300);
                 cout << tokens[1] << " 회원이 친구 목록을 요청했습니다." << endl;
                 db_init();
                 db_selectQuery_ver2();
             };
             // tokens[0] == 51 이면 보낸 메시지 저장 요청
             if (tokens[0] == "51") {
-                Sleep(1000);
+                Sleep(300);
                 cout << tokens[1] << " 회원이 메세지 저장을 요청했습니다." << endl;
                 db_messageSend();
                 //Sleep(2000);

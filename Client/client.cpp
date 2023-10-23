@@ -688,6 +688,7 @@ int list_recv() {
     while (!dblist_flag) {
         ZeroMemory(&buf, MAX_SIZE);
         if (recv(client_sock, buf, MAX_SIZE, 0) > 0) {
+            system("cls");
             std::lock_guard<std::mutex> lock(mtx);
             //cout << "list_recv buf = " << buf << endl;
             //void dm_send_db(int server_request, const string& sender, const std::string & recipientUser, const std::string& user_2, const std::vector<std::vector<std::string>>&result)
@@ -773,29 +774,6 @@ void friend_list() {
             
         }
         cout << " =====================4======================= " << endl;
-    }
-}
-
-void friend_list() {
-    system("cls");
-
-    while (!dblist_flag) {
-        //cout << "친구 목록을 요청합니다." << endl;
-        string User_request = "5"; //채팅하기 초반부
-
-        while (1) {
-            string msg = User_request + " " + login_User_id ;
-            send(client_sock, msg.c_str(), msg.length(), 0);
-            break;
-        }
-
-        std::thread th2(list_recv);
-
-
-        while (1);
-        th2.join();
-
-
     }
 }
 
