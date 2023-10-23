@@ -55,6 +55,7 @@ bool login_result = false;
 bool request_result = false;
 bool join_result = false;
 bool join_check = false;
+bool user_check = false;
 void server_init(); // socket 초기화 함수. socket(), bind(), listen() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 void add_client(); // 소켓에 연결을 시도하는 client를 추가(accept)하는 함수. client accept() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
 void send_msg(const char* msg); // send() 함수 실행됨. 자세한 내용은 함수 구현부에서 확인.
@@ -80,6 +81,7 @@ void db_roomUserNameQuery(); //채팅방에 있는 유저 이름 가져오기
 void db_messageSend(); // 메시지 전송 저장
 void db_join(); //회원가입
 void db_join_check(); // 회원가입 전 아이디 체크
+void db_join_check_ver2(); // 채팅 상대 입력 후 사용자 존재 여부 체크
 void db_UserEdit(); // 회원 정보 수정할 때 비밀번호 확인문
 void db_UserEdit_update(); // 회원 정보 수정 업데이트문
 void db_selectQuery(); //db 셀랙트문
@@ -91,6 +93,9 @@ void db_callMessage(); // 기존 채팅방 불러오기
 void send_msg_2(const string& msg); 
 void db_friend_list();
 void db_friend_register();
+void db_chat_list();
+void db_chat_room();
+void db_create_chatroom(string user_id_1, string user_id_2);
 
 void dm_send_db(int server_request, const string& sender, const std::string& recipientUser, const std::string& user_2, const std::vector<std::vector<std::string>>& result);
 void dm_send_dbup(int server_request, const string& sender, const std::string& recipientUser, const std::string& msg, const std::string& msg2);
@@ -418,6 +423,7 @@ void db_join_check() {
     if (res->next()) {
         cout << "#374 입력한 아이디 존재" << endl;
         join_check = false;
+        user_check = true;
         int result = 4; // 아이디 체크 실패
         int server_request = 4;
         int str_test_count = stoi(test_count);
@@ -426,6 +432,7 @@ void db_join_check() {
 
     else {
         join_check = true;
+        user_check = false;
         int result = 3; // 아이디 체크 성공 결과값
         int server_request = 4;
         int str_test_count = stoi(test_count);
@@ -433,6 +440,32 @@ void db_join_check() {
     }
 }
 
+void db_join_check_ver2() {
+
+    pstmt = con->prepareStatement("SELECT user_id FROM users WHERE user_id = ?");
+    pstmt->setString(1, tokens[2]);
+    res = pstmt->executeQuery();
+
+    if (res->next()) {
+        cout << "#408 입력한 아이디 존재" << endl;
+        user_check = true;
+        int result = 4; 
+        int server_request = 6;
+        int str_test_count = stoi(test_count);
+        dm_send_findResult(server_request, "server", result, test_count, tokens[2]); // findValue = user_id
+        
+        db_chat_room();
+    }
+
+    else {
+        cout << "네번째 확인" << endl;
+        user_check = false;
+        int result = 3; // 
+        int server_request = 6;
+        int str_test_count = stoi(test_count);
+        dm_send_findResult(server_request, "server", result, test_count, tokens[2]); // findValue = user_id
+    }
+}
 
 // 회원 정보 수정부분
 void db_UserEdit() {  
@@ -724,28 +757,31 @@ void db_friend_list() {
     pstmt->setString(1, tokens[1]);
     res = pstmt->executeQuery();
 
-    cout << "# 598 여기 됨?" << endl;
+    cout << "# 666 여기 됨?" << endl;
     if (res->next()) {
         cout << res->getString(1) << endl;
         f_list = res->getString(1); // 쿼리문 결과 저장
-        cout << f_list << endl;
-        f_lists.push_back(f_list); // 배열에 쿼리문 결과 삽입
 
-        cout << f_lists[0] << endl;
-        cout << f_lists.size() << endl;
+        if (f_list.empty() == false) {
+            cout << f_list << endl;
+            f_lists.push_back(f_list); // 배열에 쿼리문 결과 삽입
 
-        int result = 1;
-        int server_request = 71;
-        cout << "# 618" << endl;
-        int str_test_count = stoi(test_count);
-        dm_send_findResult(server_request, "server", result, test_count, f_lists[0]); // 
-    }
-    else {
-        int result = 2;
-        int server_request = 71;
-        cout << "# 625" << endl;
-        int str_test_count = stoi(test_count);
-        dm_send_findResult(server_request, "server", result, test_count, "temp"); // 
+            cout << f_lists[0] << endl;
+            cout << f_lists.size() << endl;
+
+            int result = 1;
+            int server_request = 71;
+            cout << "# 679" << endl;
+            int str_test_count = stoi(test_count);
+            dm_send_findResult(server_request, "server", result, test_count, f_lists[0]);
+        }
+        else if (f_list.empty() == true) {
+            cout << "# 684" << endl;
+            int result = 2;
+            int server_request = 71;
+            int str_test_count = stoi(test_count);
+            dm_send_findResult(server_request, "server", result, test_count, "temp");
+        }
     }
 }
 
@@ -771,7 +807,7 @@ void db_friend_register() {
             int str_test_count = stoi(test_count);
             dm_send_result(server_request, "server", result, test_count, "temp", tokens[1]);
         }
-        else {
+        else { // 동일한 사람들을 번갈아가며 두 번 저장
             pstmt = con->prepareStatement("INSERT INTO friend_list (user_id, friend_id) VALUES (?, ?)");
             pstmt->setString(1, tokens[1]);
             pstmt->setString(2, tokens[2]);
@@ -799,6 +835,166 @@ void db_friend_register() {
         dm_send_result(server_request, "server", result, test_count, "temp", tokens[1]);
     }
 
+}
+
+void db_chat_list() {
+
+    std::vector<std::string> chat_lists; // 친구 목록 저장할 배열
+    std::string chat_list_1, chat_list_2, msg;
+
+    pstmt = con->prepareStatement("SELECT GROUP_CONCAT(user_id_2 SEPARATOR ' ') FROM chatroom WHERE user_id_1 = ?");
+    pstmt->setString(1, tokens[1]);
+    res = pstmt->executeQuery();
+    cout << "#751" << endl;
+
+    pstmt2 = con->prepareStatement("SELECT GROUP_CONCAT(user_id_1 SEPARATOR ' ') FROM chatroom WHERE user_id_2 = ?");
+    pstmt2->setString(1, tokens[1]);
+    res2 = pstmt2->executeQuery();
+    cout << "#756" << endl;
+
+    if (res->next()) {
+        chat_list_1 = res->getString(1);
+        cout << "user_id_1 기준 : " << chat_list_1 << endl;
+        if (chat_list_1.empty() != true) {
+            chat_lists.push_back(chat_list_1);
+        }
+    }
+
+    if (res2->next()) {
+        chat_list_2 = res2->getString(1);
+        cout << "user_id_2 기준 : " << chat_list_2 << endl;
+        if (chat_list_2.empty() != true) {
+            chat_lists.push_back(chat_list_2);
+        }
+    }
+    
+    if (chat_list_1.empty() == true && chat_list_2.empty() == true) {
+        int result = 2;
+        int server_request = 6;
+        cout << " # 790 " << endl;
+        int str_test_count = stoi(test_count);
+        dm_send_findResult(server_request, "server", result, test_count, "temp");
+    }
+
+    else {
+        for (int i = 0; i < chat_lists.size(); i++) {
+            msg += chat_lists[i] + " ";
+        }
+
+        int result = 1;
+        int server_request = 6;
+        cout << "#785" << endl;
+        int str_test_count = stoi(test_count);
+        dm_send_findResult(server_request, "server", result, test_count, msg); // 
+    }
+}
+
+void db_chat_room() {
+
+    string chatroom_num, num, create_num;
+    int a;
+
+	pstmt = con->prepareStatement("SELECT room_num FROM chatroom WHERE user_id_1 = ? and user_id_2 = ? or user_id_1 = ? and user_id_2 = ?");
+	pstmt->setString(1, tokens[1]);
+	pstmt->setString(2, tokens[2]);
+	pstmt->setString(3, tokens[2]);
+	pstmt->setString(4, tokens[1]);
+	res = pstmt->executeQuery();
+	cout << " # 856 " << endl;
+
+	if (res->next()) {
+		chatroom_num = res->getString(1);
+		cout << " # 861 : 값 확인용 : " << chatroom_num << endl;
+
+		std::vector<std::vector<std::string>> result;
+		string user_2;
+
+		stmt = con->createStatement();
+		res = stmt->executeQuery("SELECT user_id_1, user_id_2 FROM chatroom WHERE room_num = '" + chatroom_num + "'");
+		cout << " # 870" << endl;
+		// 결과 출력
+		while (res->next()) {
+			//cout << "현재 접속중인 방 번호 " << res2->getString("room_num") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+			cout << "유저 1의 ID : " << res->getString("user_id_1") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+			cout << "유저 2의 ID : " << res->getString("user_id_2") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+			string temp1 = res->getString("user_id_1");
+			if (tokens[1] == temp1) {
+				user_2 = res->getString("user_id_2");
+			}
+			else if (tokens[1] != temp1) {
+				user_2 = res->getString("user_id_1");
+			}
+		}
+
+		string query_msg = "message_room_" + chatroom_num;
+		cout << "확인용 : " << query_msg << endl;
+
+		pstmt2 = con->prepareStatement("SELECT number, user_id, content, time FROM ?");
+		pstmt2->setString(1, query_msg);
+		res2 = pstmt2->executeQuery();
+		cout << "# 891" << endl;
+
+		while (res2->next()) {
+			std::vector<std::string> row;
+			row.push_back(res2->getString("number"));
+			row.push_back(res2->getString("user_id"));
+			row.push_back(res2->getString("content"));
+			row.push_back(res2->getString("time"));
+			result.push_back(row);
+		}
+
+		for (const auto& row : result) {
+			for (const std::string& value : row) {
+				std::cout << value << " ";
+			}
+			std::cout << "백터 테스트 " << std::endl;
+		}
+
+		dm_send_db(5, "server", test_count, user_2, result);
+
+		delete stmt;
+
+	}
+	else {
+        stmt = con->createStatement();
+        pstmt = con->prepareStatement("INSERT INTO chatroom VALUES (null, ?, ?)");
+        pstmt->setString(1, tokens[1]);
+        pstmt->setString(2, tokens[2]);
+        pstmt->executeQuery();
+		cout << " # 902" << endl;
+
+        db_create_chatroom(tokens[1], tokens[2]);
+
+		int result = 4; // DB에 대화방 생성 성공 결과값
+		int server_request = 5;
+		cout << "# 908" << endl;
+		int str_test_count = stoi(test_count);
+		dm_send_result(server_request, "server", result, test_count, "temp", tokens[1]);
+	}
+
+}
+
+void db_create_chatroom(string user_id_1, string user_id_2) {
+    pstmt = con->prepareStatement("SELECT room_num FROM chatroom WHERE user_id_1 = ? and user_id_2 = ?");
+    pstmt->setString(1, user_id_1);
+    pstmt->setString(2, user_id_2);
+
+    res = pstmt->executeQuery();
+    
+    if (res->next()) {
+        string create_num = res->getString(1);
+        cout << " # 924 결과 : " << create_num << endl;
+        string msg = "message_room_" + create_num;
+        string query = "CREATE TABLE " + msg + " (number int primary key auto_increment, user_id VARCHAR(10) not null, content VARCHAR(255) not null, time datetime not null)";
+
+        stmt = con->createStatement();
+        stmt->execute(query);
+
+        delete stmt;
+        delete con;
+
+        cout << " # 934 두 번째 확인" << endl;
+    }
 }
 
 int main() {
@@ -861,6 +1057,9 @@ void server_init() {
     server_sock.user = "server";
     cout << "Server On" << endl;
     //db_selectQuery_ver2();
+
+    //db_roomUserNameQuery();
+
 }
 
 void add_client() {
@@ -1058,20 +1257,30 @@ void recv_msg(int idx) {
             // tokens[0] == 6 이면 기존 채팅방 요청
             if (tokens[0] == "6") {
                 cout << tokens[1] << " 회원이 유저의 기본 채팅방을 요청했습니다." << endl;
-                
+                db_init();
+                db_chat_list();
+            };
+
+            if (tokens[0] == "61") {
+                cout << tokens[1] << " 회원이 유저의 채팅방을 요청했습니다." << endl;
+                db_init();
+                db_join_check_ver2();
+                if (!user_check) {
+                    db_chat_room();
+                }
             };
 
             // tokens[0] == 7 이면 친구 추가 기능 요청
-            if (tokens[0] == "71") {
-                cout << tokens[1] << " 회원이 친구 목록 확인 기능을 요청했습니다." << endl;
-                db_init();
-                db_friend_list();
-            };
-            
             if (tokens[0] == "7") {
                 cout << tokens[1] << " 회원이 친구 추가 기능을 요청했습니다." << endl;
                 db_init();
                 db_friend_register();
+            };
+
+            if (tokens[0] == "71") {
+                cout << tokens[1] << " 회원이 친구 목록 확인 기능을 요청했습니다." << endl;
+                db_init();
+                db_friend_list();
             };
             // tokens[0] == 8 이면 비밀번호 수정 요청
             if (tokens[0] == "8") {
