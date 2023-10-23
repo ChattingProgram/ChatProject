@@ -771,7 +771,7 @@ void chat_list() {
                     dblist_flag = true;
                     break;
                 }
-                string msg = User_request + " " + login_User_id + " " + user_msg;
+                string msg = User_request + " " + login_User_id + " " + user_msg + " " + chatting_roomnum;
                 //수정 필요
                 send(client_sock, msg.c_str(), msg.length(), 0);                
             }
@@ -985,7 +985,7 @@ void conversation_recv() {
                     else if (result == "4") {
                         cout << " # 981 " << endl;
                         cout << "※ 아이디 검색 성공! 대화방을 불러옵니다." << endl;
-                        user_check_flag = true;
+                        break;
                     }
 
                 }
