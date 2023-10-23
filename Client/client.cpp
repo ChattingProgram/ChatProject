@@ -7,8 +7,12 @@
 #include <iostream>
 #include <thread>
 #include <vector>
-#include <mutex>
-#include <limits> // max 위해
+
+#include <stdio.h>
+#include <Windows.h>
+#include <mmsystem.h> //소리 출력
+#pragma comment(lib,"winmm.lib") //소리 출력
+
 
 #include "main.h" // 기본적인 설정 저장해놓은 헤더 불러오기
 #include "util.h" // 커서 관련 기능
@@ -27,8 +31,8 @@ string login_User_nick, login_User_id; //로그인 정보
 string User_edit_pw; //로그인한 유저 이름 아이디 저장
 string edit_check = "N";
 string friend_id; // 친구 추가할 친구 아이디
-
-std::mutex mtx;
+string chatting_friend; // 대화중인 친구
+string chatting_roomnum; // 대화중인 방번호
 
 WSADATA wsa;
 // Winsock를 초기화하는 함수. MAKEWORD(2, 2)는 Winsock의 2.2 버전을 사용하겠다는 의미..+
@@ -54,9 +58,8 @@ void findID(); // 아이디 찾기
 void findPW(); // 패스워드 찾기
 void join();
 bool User_Edit_falg = false;
-void friend_list();
+void chat_list();
 void User_Edit(); // 정보 수정 메뉴버튼 8
-//void chat_list(); 
 void friend_register();
 void friend_list_recv();
 void conversation();
@@ -681,7 +684,7 @@ void User_Edit() {
     }
 }
 
-int list_recv() {
+int chatlist_recv() {
     char buf[MAX_SIZE] = { };
     string msg;
 
@@ -689,7 +692,6 @@ int list_recv() {
         ZeroMemory(&buf, MAX_SIZE);
         if (recv(client_sock, buf, MAX_SIZE, 0) > 0) {
             system("cls");
-            std::lock_guard<std::mutex> lock(mtx);
             //cout << "list_recv buf = " << buf << endl;
             //void dm_send_db(int server_request, const string& sender, const std::string & recipientUser, const std::string& user_2, const std::vector<std::vector<std::string>>&result)
             // 서버요청 번호 / 보낸사람 : server / 받는사람 : 나 / 같이 대화하는 사람 / 대화 내용
@@ -717,6 +719,7 @@ int list_recv() {
             }
             
             //cout << tokens[0] << " < 토큰즈[0] 임 " << endl;
+            
 
             if (tokens[0] == "5") {
                 std::cout << tokens[3] << "과 대화하고 있습니다." << endl;
@@ -725,7 +728,8 @@ int list_recv() {
                 // second 벡터 값 출력
                 for (size_t i = 0; i < DB_contents.size(); ++i) {
                     std::cout << "DB_contents[" << i << "]: " << DB_contents[i] << std::endl;
-                }                
+                }        
+                PlaySound(TEXT("katalk.wav"), 0, SND_FILENAME | SND_ASYNC); //일반 재생
             }        
             cout << " ============================================ " << endl;
             cout << " 보낼 메세지를 입력하세요." << endl;
@@ -736,7 +740,7 @@ int list_recv() {
     }
 }
 
-void friend_list() {
+void chat_list() {
     system("cls");  
     int code = WSAStartup(MAKEWORD(2, 2), &wsa);
 
@@ -747,14 +751,14 @@ void friend_list() {
         string User_request = "5"; //채팅하기 초반부
 
         while (1) {
-            string msg = User_request + " " + login_User_id;
+            string msg = User_request + " " + login_User_id + " " + chatting_friend + " " + chatting_roomnum;
             send(client_sock, msg.c_str(), msg.length(), 0);
             break;
         }
 
 
-        std::thread th2(list_recv);
-        //while (std::cin.get() != '\n'); //채팅하기 들어올때 누른 스페이스바 삭제
+        std::thread th2(chatlist_recv);
+        while (std::cin.get() != '\n'); //채팅하기 들어올때 누른 스페이스바 삭제
 
         cout << " =====================3======================= " << endl;       
         while (1) {
@@ -892,7 +896,7 @@ void friend_list_recv() {
     }
 }
 
-void conversation() {
+void conversation() { //6 친구 목록 가져오기
 
     while (1) {
 
@@ -912,9 +916,8 @@ void conversation() {
             send(client_sock, msg.c_str(), msg.length(), 0);
         }
 
-        if (conversation_flag == true && user_check_flag == true) {
-            friend_list();
-
+        if (conversation_flag == true && user_check_flag == true) { //리스트 불러오면 true + 상대 아이디 있으면 true
+            chat_list(); 
 
         }
 
@@ -928,7 +931,7 @@ void conversation() {
 void conversation_recv() {
 
     while (!code) {
-        system("cls");
+        //system("cls");
         char buf[MAX_SIZE] = { };
         ZeroMemory(&buf, MAX_SIZE);
         if (recv(client_sock, buf, MAX_SIZE, 0) > 0) {
@@ -986,8 +989,12 @@ void conversation_recv() {
                     }
 
                 }
-                else if (tokens[0] == "5") {
-                    friend_list();
+                else if (tokens[0] == "601") { //정상적으로 다 실행됐을 때 여기로 와야함
+                    cout << "클라 # 992 의 " << tokens[3] << endl;
+                    chatting_friend = tokens[3];
+                    cout << "클라 # 994 의 " << chatting_friend << endl;
+                    chatting_roomnum = tokens[4];
+                    break;
                 }
                 else if (tokens[0] == "4") {
                     result = tokens[2];
@@ -1065,20 +1072,15 @@ int main()
             friend_list_flag = false;
             MainMenu(); // 메인 메뉴 그리기 생성자 호출
 
-            if (chat_restart_flag == true) {
-                dblist_flag = false;
-                chat_restart_flag = false;
-                friend_list();
-            }
-
             cout << "로그인 성공! " << login_User_nick << " 님 환영합니다." << endl;
             //cout << "주석 처리 필수! 확인용! " << login_User_id << " 님 환영합니다." << endl;
             cout << edit_check << " 에이디트트 체크 " << User_Edit_falg << "플래기 " << endl;
             int menuCode = Login_MenuDraw();
 
             if (menuCode == 0) { // 5 대화하기
-                system("cls");                
-                friend_list();
+                system("cls");
+                conversation(); // 친구 목록 가져오기
+                chat_list();
             }
             else if (menuCode == 1) { // 6 기존 대화방 불러오기
                 conversation();
