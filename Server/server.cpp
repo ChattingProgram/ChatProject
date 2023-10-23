@@ -31,6 +31,7 @@ sql::PreparedStatement* pstmt;
 sql::PreparedStatement* pstmt2;
 sql::ResultSet* res; //결과값을 위해
 sql::ResultSet* res2; //결과값을 위해
+sql::ResultSet* res3; //결과값을 위해
 
 SOCKET client_sock;
 
@@ -231,8 +232,43 @@ void db_messageSend() {
     // 
     string msg = "update";
     cout << "보낸다 메세지 2개" << endl;
-    dm_send_dbup(52, "server", "0", msg, msg);
-    dm_send_dbup(53, "server", "1", msg, msg);
+    //
+    std::vector<std::vector<std::string>> result;
+    stmt = con->createStatement();
+    res3 = stmt->executeQuery("SELECT * FROM message_room_1");
+    string a = "1"; 
+    string user_2;
+    res2 = stmt->executeQuery("SELECT user_id_1, user_id_2 FROM chatroom WHERE room_num = '" + a + "'");
+    cout << "토큰즈원 " << tokens[1] << endl;
+    // 결과 출력
+    while (res2->next()) {
+        //cout << "현재 접속중인 방 번호 " << res2->getString("room_num") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        cout << "유저 1의 ID : " << res2->getString("user_id_1") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        cout << "유저 2의 ID : " << res2->getString("user_id_2") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
+        string temp1 = res2->getString("user_id_1");
+        if (tokens[1] == temp1) {
+            user_2 = res2->getString("user_id_2");
+        }
+        else if (tokens[1] != temp1) {
+            user_2 = res2->getString("user_id_1");
+        }
+    }
+
+
+    while (res3->next()) {
+        std::vector<std::string> row;
+        row.push_back(res3->getString("number"));
+        row.push_back(res3->getString("user_id"));
+        row.push_back(res3->getString("content"));
+        row.push_back(res3->getString("time"));
+        result.push_back(row);
+    }
+    dm_send_db(5, "server", "0", user_2, result);
+    Sleep(1000);
+    dm_send_db(5, "server", "1", user_2, result);
+    //dm_send_dbup(52, "server", "0", msg, msg);
+    //Sleep(1000);
+    //dm_send_dbup(53, "server", "1", msg, msg);
     //mtx.unlock();
     delete stmt;
     // MySQL Connector/C++ 정리
@@ -469,7 +505,7 @@ void db_selectQuery_ver2() {
     string user_2;  
 
     res2 = stmt->executeQuery("SELECT user_id_1, user_id_2 FROM chatroom WHERE room_num = '" + a + "'");
-    cout << "토큰즈원" <<  tokens[1] << endl;
+    cout << "토큰즈원 " <<  tokens[1] << endl;
     // 결과 출력
     while (res2->next()) {
         //cout << "현재 접속중인 방 번호 " << res2->getString("room_num") << endl; // ("필드이름")을 써야함. 필드이름 원하는거!
@@ -513,7 +549,8 @@ void db_selectQuery_ver2() {
     //dm_send_findResult(server_request, "server", result, tokens[1], db_pw);\
 
     
-    dm_send_db(5, "server" , test_count, user_2, result);
+    dm_send_db(5, "server", test_count, user_2, result);
+    //dm_send_db(5, "server", "1", user_2, result);
     //mtx.unlock();
     delete stmt;
 }
@@ -548,7 +585,7 @@ void dm_send_db(int server_request, const string& sender, const std::string & re
     for (int i = 0; i < client_count; i++) {
         if (std::to_string(sck_list[i].user_number) == recipientUser) {
             //if (sck_list[i].login_status == true) {
-            //cout << "dm_send_db " << msg << endl;
+            cout << "dm_send_db " << msg << endl;
             send(sck_list[i].sck, msg.c_str(), msg.length(), 0);
             return; // 특정 사용자에게 메시지를 보내면 함수 종료
             //}
@@ -1004,12 +1041,14 @@ void recv_msg(int idx) {
 
             // tokens[0] == 5 이면 대화기능 요청
             if (tokens[0] == "5") {
+                Sleep(1000);
                 cout << tokens[1] << " 회원이 친구 목록을 요청했습니다." << endl;
                 db_init();
                 db_selectQuery_ver2();
             };
             // tokens[0] == 51 이면 보낸 메시지 저장 요청
             if (tokens[0] == "51") {
+                Sleep(1000);
                 cout << tokens[1] << " 회원이 메세지 저장을 요청했습니다." << endl;
                 db_messageSend();
                 //Sleep(2000);

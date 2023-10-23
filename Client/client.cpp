@@ -8,12 +8,17 @@
 #include <thread>
 #include <vector>
 #include <mutex>
+#include <limits> // max 위해
 
 #include "main.h" // 기본적인 설정 저장해놓은 헤더 불러오기
 #include "util.h" // 커서 관련 기능
 #include "menu.h" // 메뉴 관련 그리기, 커서 좌표값 등 
+#include <conio.h>
+
 
 #define MAX_SIZE 1024
+
+using namespace std;
 
 SOCKET client_sock;
 SOCKADDR_IN client_addr = {};
@@ -41,6 +46,7 @@ bool dblist_flag = false;
 bool register_flag = false;
 bool friend_list_flag = false;
 bool chat_restart_flag = false;
+bool chat_list_flag = false;
 void socket_init(); // 소켓정보 저장
 void findID(); // 아이디 찾기
 void findPW(); // 패스워드 찾기
@@ -672,20 +678,19 @@ void User_Edit() {
     }
 }
 
-int list_recv(const std::string& th_name) {
+int list_recv() {
     char buf[MAX_SIZE] = { };
     string msg;
 
     while (!dblist_flag) {
         ZeroMemory(&buf, MAX_SIZE);
         if (recv(client_sock, buf, MAX_SIZE, 0) > 0) {
+            std::lock_guard<std::mutex> lock(mtx);
             //cout << "list_recv buf = " << buf << endl;
             //void dm_send_db(int server_request, const string& sender, const std::string & recipientUser, const std::string& user_2, const std::vector<std::vector<std::string>>&result)
             // 서버요청 번호 / 보낸사람 : server / 받는사람 : 나 / 같이 대화하는 사람 / 대화 내용
-            //mtx.lock();
             std::vector<std::string> tokens;
             std::vector<std::string> DB_contents;
-            tokens.clear();
             std::stringstream ss(buf);
             std::string token;  
 
@@ -707,20 +712,9 @@ int list_recv(const std::string& th_name) {
                 }
             }
             
+            //cout << tokens[0] << " < 토큰즈[0] 임 " << endl;
 
-            if (tokens[0] == "52") {
-                cout << "두근두근" << endl;
-                friend_list();
-                /*chat_restart_flag = true;
-                break;*/
-            }
-            else if (tokens[0] == "53") {
-                cout << "호호호호" << endl;
-                friend_list();
-                /*chat_restart_flag = true;
-                break;*/
-            }
-            else if (tokens[0] == "5") {
+            if (tokens[0] == "5") {
                 std::cout << tokens[3] << "과 대화하고 있습니다." << endl;
                 cout << " ============================================ " << endl;
 
@@ -731,22 +725,63 @@ int list_recv(const std::string& th_name) {
             }        
             cout << " ============================================ " << endl;
             cout << " 보낼 메세지를 입력하세요." << endl;
-            //system("cls");         
-               
-            //mtx.unlock();
+            
+            
+           
         }
     }
 }
 
 void friend_list() {
-    
 
-    while (!dblist_flag) {
+    int code = WSAStartup(MAKEWORD(2, 2), &wsa);
+
+
+    if (!code) {
         system("cls");
         //cout << "친구 목록을 요청합니다." << endl;
-        const int numThreads = 5; // 원하는 쓰레드의 수
-        std::thread th2[numThreads];        
+        string User_request = "5"; //채팅하기 초반부
 
+        while (1) {
+            string msg = User_request + " " + login_User_id;
+            send(client_sock, msg.c_str(), msg.length(), 0);
+            break;
+        }
+
+
+        std::thread th2(list_recv);
+        //while (std::cin.get() != '\n'); //채팅하기 들어올때 누른 스페이스바 삭제
+
+        cout << " =====================3======================= " << endl;       
+        while (1) {
+            string User_request = "51";
+            if (std::cin.peek() != EOF) { //사용자의 입력이 있으면
+                string user_msg;
+                getline(cin, user_msg); // 사용자 입력을 한 줄로 읽기
+
+                if (user_msg == "exit") {
+                    dblist_flag = true;
+                    break;
+                }
+                string msg = User_request + " " + login_User_id + " " + user_msg;
+                //수정 필요
+                send(client_sock, msg.c_str(), msg.length(), 0);                
+            }
+            
+        }
+        cout << " =====================4======================= " << endl;
+
+        th2.join();
+
+
+    }
+}
+
+void friend_list2() {
+    
+
+    while (!dblist_flag) {        
+        //cout << "친구 목록을 요청합니다." << endl;
         string User_request = "5"; //채팅하기 초반부
 
         while (1) {
@@ -754,9 +789,11 @@ void friend_list() {
             send(client_sock, msg.c_str(), msg.length(), 0);
             break;
         }
+
         
+        std::thread th2(list_recv);
         
-        cout << " ============================================ " << endl;        
+        cout << " =====================3======================= " << endl;
         while (1) {
             string User_request = "51";
             string user_msg;
@@ -770,14 +807,10 @@ void friend_list() {
             send(client_sock, msg.c_str(), msg.length(), 0);
             break;
         }
-        cout << " ============================================ " << endl;
-        //th2.join();
+        cout << " =====================4======================= " << endl;
 
-        for (int i = 0; i < numThreads; ++i) {
-            std::string th_name = "Thread" + std::to_string(i);
-            th2[i] = std::thread(list_recv, th_name);
-            th2[i].join(); // 쓰레드가 실행을 마칠 때까지 기다림
-        }
+        th2.join();
+
 
     }
 }
@@ -974,6 +1007,7 @@ int main()
             int menuCode = Login_MenuDraw();
 
             if (menuCode == 0) { // 5 대화하기
+                system("cls");                
                 friend_list();
             }
             else if (menuCode == 1) { // 6 기존 대화방 불러오기
