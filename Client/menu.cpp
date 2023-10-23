@@ -31,42 +31,30 @@ int keyControl() {
 }
 
 void MainMenu() {
-    cout << "\n\n\n\n";
-    cout << "\t\t"; cout << " 아 직 이 름 미 정 ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ         \n";
-    cout << "\t\t"; cout << " 아 직 이 름 미 정 ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ         \n";
-    cout << "\t\t"; cout << " 아 직 이 름 미 정 ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ         \n";
-    cout << "\t\t"; cout << " 아 직 이 름 미 정 ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ         \n";
-    cout << "\t\t"; cout << " 아 직 이 름 미 정 ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ         \n";
-    cout << "\t\t"; cout << " 아 직 이 름 미 정 ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ         \n";
-    cout << "\t\t"; cout << " 아 직 이 름 미 정 ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ         \n";
-    cout << "\t\t"; cout << " 아 직 이 름 미 정 ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ ㅠ         \n";
-    cout << "\t\t"; cout << "              조작방법 W A S D / 결정 : 스페이스바                \n";
+    cout << "■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■\n";
+    cout << "■                                                       ■\n";
+    cout << "■       ****    *      *         *        *********     ■\n";
+    cout << "■     *         *      *        * *           *         ■\n";
+    cout << "■    *          *      *       *   *          *         ■\n";
+    cout << "■    *          ********      *******         *         ■\n";
+    cout << "■    *          *      *     *       *        *         ■\n";
+    cout << "■     *         *      *    *         *       *         ■\n";
+    cout << "■       ****    *      *   *           *      *         ■\n";
+    cout << "■                                                       ■\n";
+    cout << "■              *****      ****    *     *               ■\n";
+    cout << "■              *    *    *    *    *   *                ■\n";
+    cout << "■              *    *   *      *    * *                 ■\n";
+    cout << "■              *  **    *      *     *                  ■\n";
+    cout << "■              *    *   *      *    * *                 ■\n";
+    cout << "■              *    *    *    *    *   *                ■\n";
+    cout << "■              *****      ****    *     *               ■\n";
+    cout << "■                                                       ■\n";
+    cout << "■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■\n\n";
+    cout << "        조작방법 W A S D / 결정 : 스페이스바   \n";
 
     //getchar(); // 아무키 입력 기다림
     //system("cls"); // 콘솔 창 clear
 };
-
-void infoGame() {
-    system("cls");
-    cout << "\n\n\n\n";
-    cout << "\t\t"; cout << "******************************************************************* \n";
-    cout << "\t\t"; cout << "누구를 위해 누군가 기도하고 있나 봐 숨죽여 쓴 사랑시가 \n";
-    cout << "\t\t"; cout << "낮게 들리는 듯해 너에게로 선명히 날아가 늦지 않게 자리에 닿기를 \n";
-    cout << "\t\t"; cout << "I'll be there 홀로 걷는 너의 뒤에 Singing till the end 그치지 않을 이 노래 \n";
-    cout << "\t\t"; cout << "아주 잠시만 귀 기울여 봐 유난히 긴 밤을 걷는 널 위해 부를게 \n";
-    cout << "\t\t"; cout << "또 한 번 너의 세상에 별이 지고 있나 봐 숨죽여 삼킨 눈물이 \n";
-    cout << "\t\t"; cout << "여기 흐르는 듯해 할 말을 잃어 고요한 마음에 기억처럼 들려오는 목소리 \n";
-    cout << "\t\t"; cout << "I'll be there 홀로 걷는 너의 뒤에 Singing till the end 그치지 않을 이 노래 \n";
-    cout << "\t\t"; cout << "아주 커다란 숨을 쉬어 봐 소리 내 우는 법을 잊은 널 위해 부를게 \n";
-    cout << "\t\t"; cout << "******************************************************************* \n";
-    cout << "\t\t"; cout << "    스페이스바를 한 번 더 입력하시면 초기 화면으로 돌아갑니다. \n";
-
-    while (1) {
-        if (keyControl() == SUBMIT) { //스페이스바 누르기 전 까지는 이 정보창에 머무릅니다.
-            break;
-        }
-    }
-}
 
 int MenuDraw() { //첫 게임 시작화면
 
@@ -81,24 +69,24 @@ int MenuDraw() { //첫 게임 시작화면
     // 위쪽 : y감소
     // 
      // 메뉴 코드 0:로그인 / 1:id찾기 / 2:pw찾기 / 3:회원가입 / 4:대화 / 5:기존채팅 / 6:친추 / 7:비번수정
-    int x = 36;
-    int y = 15;
-    gotoxy(x - 2, y); // 35 , 15
+    int x = 24;
+    int y = 24;
+    gotoxy(x - 2, y); // 23 , 24
     printf(">  로그인  "); //다른 애들보다 x값이 작은건 > 때문에 자연스럽게 보일려고
-    gotoxy(x, y + 1); // 36 , 16
+    gotoxy(x, y + 1); // 24 , 25
     printf(" ID 찾기 ");
-    gotoxy(x, y + 2); // 36, 17
+    gotoxy(x, y + 2); // 24, 26
     printf(" PW 찾기 ");
-    gotoxy(x, y + 3); // 36, 18
+    gotoxy(x, y + 3); // 24, 27
     printf(" 회원 가입 ");
-    gotoxy(x, y + 4); // 36, 19
+    gotoxy(x, y + 4); // 24, 28
     printf(" 프로그램 종료 ");
 
     while (1) {
         int n = keyControl(); //키값 받기
         switch (n) {
         case UP: {
-            if (y > 15) {
+            if (y > 24) {
                 gotoxy(x - 2, y);
                 printf(" ");
                 gotoxy(x - 2, --y);
@@ -107,7 +95,7 @@ int MenuDraw() { //첫 게임 시작화면
             break;
         }
         case DOWN: {
-            if (y < 19) {
+            if (y < 28) {
                 gotoxy(x - 2, y);
                 printf(" ");
                 gotoxy(x - 2, ++y);
@@ -116,7 +104,7 @@ int MenuDraw() { //첫 게임 시작화면
             break;
         }
         case SUBMIT: {
-            return y - 15; // 시작 위치를 빼서 메뉴 선택을 0 , 1 , 2 값으로 좁힘.
+            return y - 24; // 시작 위치를 빼서 메뉴 선택을 0 , 1 , 2 값으로 좁힘.
         }
         }//스위치문 닫는 곳
 
@@ -135,24 +123,24 @@ int Login_MenuDraw() { //첫 게임 시작화면
     // 아래 : y증가
     // 위쪽 : y감소
 
-    int x = 36;
-    int y = 15;
-    gotoxy(x - 2, y); // 35 , 15
+    int x = 24;
+    int y = 24;
+    gotoxy(x - 2, y); // 23 , 24
     printf(">  대화하기  "); //다른 애들보다 x값이 작은건 > 때문에 자연스럽게 보일려고
-    gotoxy(x, y + 1); // 36 , 16
+    gotoxy(x, y + 1); // 24 , 25
     printf(" 기존 대화방 ");
-    gotoxy(x, y + 2); // 36, 17
+    gotoxy(x, y + 2); // 24, 26
     printf(" 친구 추가 ");
-    gotoxy(x, y + 3); // 36, 18
+    gotoxy(x, y + 3); // 24, 27
     printf(" 비밀번호 수정 ");
-    gotoxy(x, y + 4); // 36, 19
+    gotoxy(x, y + 4); // 24, 28
     printf(" 프로그램 종료 ");
 
     while (1) {
         int n = keyControl(); //키값 받기
         switch (n) {
         case UP: {
-            if (y > 15) {
+            if (y > 24) {
                 gotoxy(x - 2, y);
                 printf(" ");
                 gotoxy(x - 2, --y);
@@ -161,7 +149,7 @@ int Login_MenuDraw() { //첫 게임 시작화면
             break;
         }
         case DOWN: {
-            if (y < 19) {
+            if (y < 28) {
                 gotoxy(x - 2, y);
                 printf(" ");
                 gotoxy(x - 2, ++y);
@@ -170,7 +158,7 @@ int Login_MenuDraw() { //첫 게임 시작화면
             break;
         }
         case SUBMIT: {
-            return y - 15; // 시작 위치를 빼서 메뉴 선택을 3, 4, 5 값으로 좁힘.
+            return y - 24; // 시작 위치를 빼서 메뉴 선택을 3, 4, 5 값으로 좁힘.
         }
         }//스위치문 닫는 곳
 
