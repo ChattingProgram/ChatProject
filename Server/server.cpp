@@ -1,12 +1,12 @@
-#pragma comment(lib, "ws2_32.lib") //¸í½ÃÀûÀÎ ¶óÀÌºê·¯¸®ÀÇ ¸µÅ©. À©¼Ó ¶óÀÌºê·¯¸® ÂüÁ¶
+#pragma comment(lib, "ws2_32.lib") //ëª…ì‹œì ì¸ ë¼ì´ë¸ŒëŸ¬ë¦¬ì˜ ë§í¬. ìœˆì† ë¼ì´ë¸ŒëŸ¬ë¦¬ ì°¸ì¡°
 #include <WinSock2.h>
 #include <string>
 #include <iostream>
 #include <thread>
 #include <vector>
-#include <mysql/jdbc.h> // C++ÇÏ°í MYSQLÀ» ¿¬°áÇÏ±â À§ÇØ ¼±¾ğ.
-#include <sstream> // ¿ä±¸»çÇ× ºĞ¸®ÇØ¼­ ÀúÀåÇÏ±â À§ÇØ ÇÊ¿äÇÔ.
-#include <WS2tcpip.h> // ¼ÒÄÏ Àü¼ÛÀ» À§ÇØ »ç¿ë
+#include <mysql/jdbc.h> // C++í•˜ê³  MYSQLì„ ì—°ê²°í•˜ê¸° ìœ„í•´ ì„ ì–¸.
+#include <sstream> // ìš”êµ¬ì‚¬í•­ ë¶„ë¦¬í•´ì„œ ì €ì¥í•˜ê¸° ìœ„í•´ í•„ìš”í•¨.
+#include <WS2tcpip.h> // ì†Œì¼“ ì „ì†¡ì„ ìœ„í•´ ì‚¬ìš©
 #include <mutex>
 
 #define MAX_SIZE 1024
@@ -17,39 +17,39 @@ using std::cin;
 using std::endl;
 using std::string;
 
-// MY SQL °ü·Ã Á¤º¸¸¦ ÀúÀåÇÏ´Â ¼±¾ğÇÏ´Â °÷ //
-const string server = "tcp://127.0.0.1:3306"; // µ¥ÀÌÅÍº£ÀÌ½º ÁÖ¼Ò
-const string username = "root"; // µ¥ÀÌÅÍº£ÀÌ½º »ç¿ëÀÚ
-const string password = "1234"; // µ¥ÀÌÅÍº£ÀÌ½º Á¢¼Ó ºñ¹Ğ¹øÈ£
+// MY SQL ê´€ë ¨ ì •ë³´ë¥¼ ì €ì¥í•˜ëŠ” ì„ ì–¸í•˜ëŠ” ê³³ //
+const string server = "tcp://127.0.0.1:3306"; // ë°ì´í„°ë² ì´ìŠ¤ ì£¼ì†Œ
+const string username = "root"; // ë°ì´í„°ë² ì´ìŠ¤ ì‚¬ìš©ì
+const string password = "1234"; // ë°ì´í„°ë² ì´ìŠ¤ ì ‘ì† ë¹„ë°€ë²ˆí˜¸
 
-// MySQL Connector/C++ ÃÊ±âÈ­
-sql::mysql::MySQL_Driver* driver; // ÃßÈÄ ÇØÁ¦ÇÏÁö ¾Ê¾Æµµ Connector/C++°¡ ÀÚµ¿À¸·Î ÇØÁ¦ÇØ ÁÜ
+// MySQL Connector/C++ ì´ˆê¸°í™”
+sql::mysql::MySQL_Driver* driver; // ì¶”í›„ í•´ì œí•˜ì§€ ì•Šì•„ë„ Connector/C++ê°€ ìë™ìœ¼ë¡œ í•´ì œí•´ ì¤Œ
 sql::Connection* con;
 sql::Statement* stmt;
 sql::Statement* stmt2;
 sql::PreparedStatement* pstmt;
 sql::PreparedStatement* pstmt2;
-sql::ResultSet* res; //°á°ú°ªÀ» À§ÇØ
-sql::ResultSet* res2; //°á°ú°ªÀ» À§ÇØ
-sql::ResultSet* res3; //°á°ú°ªÀ» À§ÇØ
+sql::ResultSet* res; //ê²°ê³¼ê°’ì„ ìœ„í•´
+sql::ResultSet* res2; //ê²°ê³¼ê°’ì„ ìœ„í•´
+sql::ResultSet* res3; //ê²°ê³¼ê°’ì„ ìœ„í•´
 
 SOCKET client_sock;
 
-struct SOCKET_INFO { // ¿¬°áµÈ ¼ÒÄÏ Á¤º¸¿¡ ´ëÇÑ Æ² »ı¼º
+struct SOCKET_INFO { // ì—°ê²°ëœ ì†Œì¼“ ì •ë³´ì— ëŒ€í•œ í‹€ ìƒì„±
     SOCKET sck;
     string user;
     int user_number;
     bool login_status = false;
 };
 
-std::vector<SOCKET_INFO> sck_list; // ¿¬°áµÈ Å¬¶óÀÌ¾ğÆ® ¼ÒÄÏµéÀ» ÀúÀåÇÒ ¹è¿­ ¼±¾ğ.
-SOCKET_INFO server_sock; // ¼­¹ö ¼ÒÄÏ¿¡ ´ëÇÑ Á¤º¸¸¦ ÀúÀåÇÒ º¯¼ö ¼±¾ğ.
+std::vector<SOCKET_INFO> sck_list; // ì—°ê²°ëœ í´ë¼ì´ì–¸íŠ¸ ì†Œì¼“ë“¤ì„ ì €ì¥í•  ë°°ì—´ ì„ ì–¸.
+SOCKET_INFO server_sock; // ì„œë²„ ì†Œì¼“ì— ëŒ€í•œ ì •ë³´ë¥¼ ì €ì¥í•  ë³€ìˆ˜ ì„ ì–¸.
 
-std::vector<std::string> tokens; // ¼ÒÄÏ¿¡ ´ëÇÑ Á¤º¸¸¦ ´ã±â À§ÇÑ ÅäÅ« ¹è¿­
-std::string token; //ÅäÅ« ¹è¿­
+std::vector<std::string> tokens; // ì†Œì¼“ì— ëŒ€í•œ ì •ë³´ë¥¼ ë‹´ê¸° ìœ„í•œ í† í° ë°°ì—´
+std::string token; //í† í° ë°°ì—´
 std::mutex mtx;
 
-int client_count = 0; // ÇöÀç Á¢¼ÓÇØ ÀÖ´Â Å¬¶óÀÌ¾ğÆ®¸¦ count ÇÒ º¯¼ö ¼±¾ğ.
+int client_count = 0; // í˜„ì¬ ì ‘ì†í•´ ìˆëŠ” í´ë¼ì´ì–¸íŠ¸ë¥¼ count í•  ë³€ìˆ˜ ì„ ì–¸.
 string test_count;
 string chatroom_num;
 
@@ -58,40 +58,40 @@ bool request_result = false;
 bool join_result = false;
 bool join_check = false;
 bool user_check = false;
-void server_init(); // socket ÃÊ±âÈ­ ÇÔ¼ö. socket(), bind(), listen() ÇÔ¼ö ½ÇÇàµÊ. ÀÚ¼¼ÇÑ ³»¿ëÀº ÇÔ¼ö ±¸ÇöºÎ¿¡¼­ È®ÀÎ.
-void add_client(); // ¼ÒÄÏ¿¡ ¿¬°áÀ» ½ÃµµÇÏ´Â client¸¦ Ãß°¡(accept)ÇÏ´Â ÇÔ¼ö. client accept() ÇÔ¼ö ½ÇÇàµÊ. ÀÚ¼¼ÇÑ ³»¿ëÀº ÇÔ¼ö ±¸ÇöºÎ¿¡¼­ È®ÀÎ.
-void send_msg(const char* msg); // send() ÇÔ¼ö ½ÇÇàµÊ. ÀÚ¼¼ÇÑ ³»¿ëÀº ÇÔ¼ö ±¸ÇöºÎ¿¡¼­ È®ÀÎ.
-void recv_msg(int idx); // recv() ÇÔ¼ö ½ÇÇàµÊ. ÀÚ¼¼ÇÑ ³»¿ëÀº ÇÔ¼ö ±¸ÇöºÎ¿¡¼­ È®ÀÎ.
+void server_init(); // socket ì´ˆê¸°í™” í•¨ìˆ˜. socket(), bind(), listen() í•¨ìˆ˜ ì‹¤í–‰ë¨. ìì„¸í•œ ë‚´ìš©ì€ í•¨ìˆ˜ êµ¬í˜„ë¶€ì—ì„œ í™•ì¸.
+void add_client(); // ì†Œì¼“ì— ì—°ê²°ì„ ì‹œë„í•˜ëŠ” clientë¥¼ ì¶”ê°€(accept)í•˜ëŠ” í•¨ìˆ˜. client accept() í•¨ìˆ˜ ì‹¤í–‰ë¨. ìì„¸í•œ ë‚´ìš©ì€ í•¨ìˆ˜ êµ¬í˜„ë¶€ì—ì„œ í™•ì¸.
+void send_msg(const char* msg); // send() í•¨ìˆ˜ ì‹¤í–‰ë¨. ìì„¸í•œ ë‚´ìš©ì€ í•¨ìˆ˜ êµ¬í˜„ë¶€ì—ì„œ í™•ì¸.
+void recv_msg(int idx); // recv() í•¨ìˆ˜ ì‹¤í–‰ë¨. ìì„¸í•œ ë‚´ìš©ì€ í•¨ìˆ˜ êµ¬í˜„ë¶€ì—ì„œ í™•ì¸.
 void dm_send_msg(const string& sender, const char* msg, const string& recipientUser);
 void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser, const string& username, const string& userid);
 void dm_send_findResult(int server_request, const string& sender, int variable, const string& recipientUser, string findValue);
 void dm_send_resultEdit(int server_request, const string& sender, int variable, const string& recipientUser);
 int chat_recv();
 
-// µğºñ ±¸ºĞ
-void del_client(int idx); // ¼ÒÄÏ¿¡ ¿¬°áµÇ¾î ÀÖ´Â client¸¦ Á¦°ÅÇÏ´Â ÇÔ¼ö. closesocket() ½ÇÇàµÊ. ÀÚ¼¼ÇÑ ³»¿ëÀº ÇÔ¼ö ±¸ÇöºÎ¿¡¼­ È®ÀÎ.
-// MYSQL DB °ü·Ã Äõ¸®¹® ÇÔ¼ö ±¸ÇöºÎ //
-// ³ªÁß¿¡ ÃÑ ÀÎ¿ø¼ö ¼¼±â µî ÇÔ¼ö Ãß°¡ÇÒ ÇÊ¿ä¼º ÀÖÀ½!! init °ú delete·Î µğºñ Á¤¸® ÇÊ¼ö. //
-void db_init(); // db º£ÀÌ½º ¼±ÅÃ ¹× ÇÑ±Û ¼¼ÆÃ °ü·Ã ºÎºĞ ±¸Çö
-void db_createQuery(); // db Å©¸®¿¡ÀÌÆ® Äõ¸® + ±»ÀÌ ÇÊ¿äÇÏÁö´Â ¾Ê´Ù.
-void db_insertQuery(); // db ÀÎ¼­Æ® Äõ¸® + ¼¼ºĞÈ­°¡ ÇÊ¿äÇÏ´Ù.
-void db_dropQuery(); // db µå·Ó Äõ¸® + ±»ÀÌ ÇÊ¿äÇÏÁö´Â ¾Ê´Ù.
-void db_updateQuery(); // db ¾÷µ¥ÀÌÆ® Äõ¸®
+// ë””ë¹„ êµ¬ë¶„
+void del_client(int idx); // ì†Œì¼“ì— ì—°ê²°ë˜ì–´ ìˆëŠ” clientë¥¼ ì œê±°í•˜ëŠ” í•¨ìˆ˜. closesocket() ì‹¤í–‰ë¨. ìì„¸í•œ ë‚´ìš©ì€ í•¨ìˆ˜ êµ¬í˜„ë¶€ì—ì„œ í™•ì¸.
+// MYSQL DB ê´€ë ¨ ì¿¼ë¦¬ë¬¸ í•¨ìˆ˜ êµ¬í˜„ë¶€ //
+// ë‚˜ì¤‘ì— ì´ ì¸ì›ìˆ˜ ì„¸ê¸° ë“± í•¨ìˆ˜ ì¶”ê°€í•  í•„ìš”ì„± ìˆìŒ!! init ê³¼ deleteë¡œ ë””ë¹„ ì •ë¦¬ í•„ìˆ˜. //
+void db_init(); // db ë² ì´ìŠ¤ ì„ íƒ ë° í•œê¸€ ì„¸íŒ… ê´€ë ¨ ë¶€ë¶„ êµ¬í˜„
+void db_createQuery(); // db í¬ë¦¬ì—ì´íŠ¸ ì¿¼ë¦¬ + êµ³ì´ í•„ìš”í•˜ì§€ëŠ” ì•Šë‹¤.
+void db_insertQuery(); // db ì¸ì„œíŠ¸ ì¿¼ë¦¬ + ì„¸ë¶„í™”ê°€ í•„ìš”í•˜ë‹¤.
+void db_dropQuery(); // db ë“œë¡­ ì¿¼ë¦¬ + êµ³ì´ í•„ìš”í•˜ì§€ëŠ” ì•Šë‹¤.
+void db_updateQuery(); // db ì—…ë°ì´íŠ¸ ì¿¼ë¦¬
 
-void db_selectQuery_ver2(); // db ¼¿·ºÆ®¹®
-void db_roomUserNameQuery(); //Ã¤ÆÃ¹æ¿¡ ÀÖ´Â À¯Àú ÀÌ¸§ °¡Á®¿À±â
-void db_messageSend(); // ¸Ş½ÃÁö Àü¼Û ÀúÀå
-void db_join(); //È¸¿ø°¡ÀÔ
-void db_join_check(); // È¸¿ø°¡ÀÔ Àü ¾ÆÀÌµğ Ã¼Å©
-void db_join_check_ver2(); // Ã¤ÆÃ »ó´ë ÀÔ·Â ÈÄ »ç¿ëÀÚ Á¸Àç ¿©ºÎ Ã¼Å©
-void db_UserEdit(); // È¸¿ø Á¤º¸ ¼öÁ¤ÇÒ ¶§ ºñ¹Ğ¹øÈ£ È®ÀÎ¹®
-void db_UserEdit_update(); // È¸¿ø Á¤º¸ ¼öÁ¤ ¾÷µ¥ÀÌÆ®¹®
-void db_selectQuery(); //db ¼¿·¢Æ®¹®
+void db_selectQuery_ver2(); // db ì…€ë ‰íŠ¸ë¬¸
+void db_roomUserNameQuery(); //ì±„íŒ…ë°©ì— ìˆëŠ” ìœ ì € ì´ë¦„ ê°€ì ¸ì˜¤ê¸°
+void db_messageSend(); // ë©”ì‹œì§€ ì „ì†¡ ì €ì¥
+void db_join(); //íšŒì›ê°€ì…
+void db_join_check(); // íšŒì›ê°€ì… ì „ ì•„ì´ë”” ì²´í¬
+void db_join_check_ver2(); // ì±„íŒ… ìƒëŒ€ ì…ë ¥ í›„ ì‚¬ìš©ì ì¡´ì¬ ì—¬ë¶€ ì²´í¬
+void db_UserEdit(); // íšŒì› ì •ë³´ ìˆ˜ì •í•  ë•Œ ë¹„ë°€ë²ˆí˜¸ í™•ì¸ë¬¸
+void db_UserEdit_update(); // íšŒì› ì •ë³´ ìˆ˜ì • ì—…ë°ì´íŠ¸ë¬¸
+void db_selectQuery(); //db ì…€ë™íŠ¸ë¬¸
 void db_login();
-void db_countuser(); // (1) À¯Àú ¼ö ¸î ¸íÀÎÁö? (¼­¹ö °øÁö·Î È°¿ë)
-void db_userlist(); // (3) À¯Àú ¸ñ·Ï Ãâ·Â
-void db_findID(); // (7) À¯Àú Á¤º¸ Ã£±â
-void db_callMessage(); // ±âÁ¸ Ã¤ÆÃ¹æ ºÒ·¯¿À±â
+void db_countuser(); // (1) ìœ ì € ìˆ˜ ëª‡ ëª…ì¸ì§€? (ì„œë²„ ê³µì§€ë¡œ í™œìš©)
+void db_userlist(); // (3) ìœ ì € ëª©ë¡ ì¶œë ¥
+void db_findID(); // (7) ìœ ì € ì •ë³´ ì°¾ê¸°
+void db_callMessage(); // ê¸°ì¡´ ì±„íŒ…ë°© ë¶ˆëŸ¬ì˜¤ê¸°
 void send_msg_2(const string& msg); 
 void db_friend_list();
 void db_friend_register();
@@ -113,77 +113,77 @@ void db_init() {
         cout << "Could not connect to server. Error message: " << e.what() << endl;
         exit(1);
     }
-    // µ¥ÀÌÅÍº£ÀÌ½º ¼±ÅÃ
+    // ë°ì´í„°ë² ì´ìŠ¤ ì„ íƒ
     con->setSchema("test");
-    // db ÇÑ±Û ÀúÀåÀ» À§ÇÑ ¼ÂÆÃ
+    // db í•œê¸€ ì €ì¥ì„ ìœ„í•œ ì…‹íŒ…
     stmt = con->createStatement();
     stmt->execute("set names euckr");
     if (stmt) { delete stmt; stmt = nullptr; }
 }
-//±»ÀÌ ÇÊ¿äÇÏÁö ¾ÊÀ½.
+//êµ³ì´ í•„ìš”í•˜ì§€ ì•ŠìŒ.
 void db_createQuery() {
     db_init();
-    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
+    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
     stmt = con->createStatement();
-    stmt->execute("CREATE TABLE users (user_id VARCHAR(10) primary key not null, name VARCHAR(10) not null, pw VARCHAR(10) not null, phonenumber VARCHAR(20) not null, nickname VARCHAR(10) not null, friend_name VARCHAR(10));"); // user Å×ÀÌºí
-    stmt->execute("CREATE TABLE chatroom (room_num int primary key auto_increment, user_id_1 VARCHAR(10) not null, user_id_2 VARCHAR(10) not null, messageDB_num int, foreign key(user_id_1) references users(user_id) on update cascade on delete cascade, foreign key(user_id_2) references users(user_id) on update cascade on delete cascade);"); // chatroom Å×ÀÌºí
-    stmt->execute("CREATE TABLE message_room (	number int primary key auto_increment, user_id VARCHAR(10) not null, content VARCHAR(255) not null, time date not null, chatroom_num int not null, foreign key(chatroom_num) references chatroom(room_num) on update cascade on delete cascade);"); // message_room Å×ÀÌºí
+    stmt->execute("CREATE TABLE users (user_id VARCHAR(10) primary key not null, name VARCHAR(10) not null, pw VARCHAR(10) not null, phonenumber VARCHAR(20) not null, nickname VARCHAR(10) not null, friend_name VARCHAR(10));"); // user í…Œì´ë¸”
+    stmt->execute("CREATE TABLE chatroom (room_num int primary key auto_increment, user_id_1 VARCHAR(10) not null, user_id_2 VARCHAR(10) not null, messageDB_num int, foreign key(user_id_1) references users(user_id) on update cascade on delete cascade, foreign key(user_id_2) references users(user_id) on update cascade on delete cascade);"); // chatroom í…Œì´ë¸”
+    stmt->execute("CREATE TABLE message_room (	number int primary key auto_increment, user_id VARCHAR(10) not null, content VARCHAR(255) not null, time date not null, chatroom_num int not null, foreign key(chatroom_num) references chatroom(room_num) on update cascade on delete cascade);"); // message_room í…Œì´ë¸”
     cout << "Finished creating table" << endl;
     delete stmt;
 }
-//ÀÎ¼­Æ®ÀÇ ¼¼ºĞÈ­°¡ ÇÊ¿äÇÔ.
-void db_insertQuery() { //ÀÏ´Ü ÀÔ·Â¸¸ ¹Ş¾Æ¼­ Ã¤¿öÁö´ÂÁö È®ÀÎ
+//ì¸ì„œíŠ¸ì˜ ì„¸ë¶„í™”ê°€ í•„ìš”í•¨.
+void db_insertQuery() { //ì¼ë‹¨ ì…ë ¥ë§Œ ë°›ì•„ì„œ ì±„ì›Œì§€ëŠ”ì§€ í™•ì¸
     db_init();
-    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
+    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
     stmt = con->createStatement();
     pstmt = con->prepareStatement("INSERT INTO inventory(name, quantity) VALUES(?,?)"); // INSERT
     cout << "Finished inserting table" << endl;
     delete stmt;
-    // MySQL Connector/C++ Á¤¸®
+    // MySQL Connector/C++ ì •ë¦¬
     delete pstmt;
     delete con;
 }
-//±»ÀÌ ÇÊ¿äÇÏÁö ¾ÊÀ» °Í °°À½.
+//êµ³ì´ í•„ìš”í•˜ì§€ ì•Šì„ ê²ƒ ê°™ìŒ.
 void db_dropQuery() {
     db_init();
-    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
+    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
     stmt = con->createStatement();
     stmt->execute("DROP TABLE IF EXISTS inventory"); // DROP
     cout << "Finished dropping table (if existed)" << endl;
     delete stmt;
-    // MySQL Connector/C++ Á¤¸®
+    // MySQL Connector/C++ ì •ë¦¬
     delete pstmt;
     delete con;
 }
-//Äõ¸®¹® ¼öÁ¤ ÇÊ¿äÇÔ
+//ì¿¼ë¦¬ë¬¸ ìˆ˜ì • í•„ìš”í•¨
 
 
 void db_updateQuery() {
     db_init();
-    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
+    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
     stmt = con->createStatement();
     stmt->execute("UPDATE TABLE IF EXISTS inventory"); // UPDATE
     cout << "Finished update table" << endl;
     delete stmt;
-    // MySQL Connector/C++ Á¤¸®
+    // MySQL Connector/C++ ì •ë¦¬
     delete pstmt;
     delete con;
 }
 
 
-//Ã¤ÆÃ¹æ¿¡ ÀÖ´Â À¯Àú ÀÌ¸§ °¡Á®¿À±â
+//ì±„íŒ…ë°©ì— ìˆëŠ” ìœ ì € ì´ë¦„ ê°€ì ¸ì˜¤ê¸°
 void db_roomUserNameQuery() {
     db_init();
-    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
+    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
     stmt = con->createStatement();
-    res = stmt->executeQuery("SELECT room_num, user_id_1, user_id_2 FROM chatroom"); // from µÚ¿¡´Â ½ÇÁ¦·Î mysql ¿¡¼­ »ç¿ëÇÏ´Â Å×ÀÌºíÀÇ ÀÌ¸§À» ½á¾ßÇÑ´Ù.
+    res = stmt->executeQuery("SELECT room_num, user_id_1, user_id_2 FROM chatroom"); // from ë’¤ì—ëŠ” ì‹¤ì œë¡œ mysql ì—ì„œ ì‚¬ìš©í•˜ëŠ” í…Œì´ë¸”ì˜ ì´ë¦„ì„ ì¨ì•¼í•œë‹¤.
     delete stmt;
 
-    // °á°ú Ãâ·Â
+    // ê²°ê³¼ ì¶œë ¥
     while (res->next()) {
-        cout << "ÇöÀç Á¢¼ÓÁßÀÎ ¹æ ¹øÈ£ " << res->getString("room_num") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
-        cout << "À¯Àú 1ÀÇ ID : " << res->getString("user_id_1") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
-        cout << "À¯Àú 2ÀÇ ID : " << res->getString("user_id_2") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
+        cout << "í˜„ì¬ ì ‘ì†ì¤‘ì¸ ë°© ë²ˆí˜¸ " << res->getString("room_num") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+        cout << "ìœ ì € 1ì˜ ID : " << res->getString("user_id_1") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+        cout << "ìœ ì € 2ì˜ ID : " << res->getString("user_id_2") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
     }
 
     string User_Choice = "2";
@@ -191,26 +191,26 @@ void db_roomUserNameQuery() {
     res = stmt->executeQuery("SELECT * FROM chatroom WHERE room_num = '" + User_Choice + "'");
 
 
-    // °á°ú Ãâ·Â
+    // ê²°ê³¼ ì¶œë ¥
     while (res->next()) {
-        cout << User_Choice << " ¶ó´Â ¿øÇÏ´Â ¹æ¿¡ Âü°¡ÁßÀÎ Âü¿©ÀÚ : " << res->getString("user_id_1") << "´Ô °ú " << res->getString("user_id_2") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
+        cout << User_Choice << " ë¼ëŠ” ì›í•˜ëŠ” ë°©ì— ì°¸ê°€ì¤‘ì¸ ì°¸ì—¬ì : " << res->getString("user_id_1") << "ë‹˜ ê³¼ " << res->getString("user_id_2") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
     }
 
-    // À¯Àú°¡ Âü¿©ÁßÀÎ ´ëÈ­¹æ¸¸ ºÒ·¯¿À±â
+    // ìœ ì €ê°€ ì°¸ì—¬ì¤‘ì¸ ëŒ€í™”ë°©ë§Œ ë¶ˆëŸ¬ì˜¤ê¸°
     string login_User = "abcd";
     stmt = con->createStatement();
     res = stmt->executeQuery("SELECT room_num FROM chatroom WHERE user_id_1 = '" + login_User + "'");
 
-    cout << " ±¸ºĞ¼± 2" << endl;
-    // °á°ú Ãâ·Â
+    cout << " êµ¬ë¶„ì„  2" << endl;
+    // ê²°ê³¼ ì¶œë ¥
     while (res->next()) {
-        cout << login_User << " °¡ Âü¿©ÁßÀÎ ¹æ ¹øÈ£ : " << res->getString("room_num") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
+        cout << login_User << " ê°€ ì°¸ì—¬ì¤‘ì¸ ë°© ë²ˆí˜¸ : " << res->getString("room_num") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
         string a = res->getString("room_num");
 
-        cout << "a°¡ ÀúÀåµÇ¾ú³ª? = " << a << endl;
+        cout << "aê°€ ì €ì¥ë˜ì—ˆë‚˜? = " << a << endl;
         res2 = stmt->executeQuery("SELECT user_id_2 FROM chatroom WHERE room_num = '" + a + "'");
         while (res2->next()) {
-            cout << a << " ¿¡¼­ " << res2->getString("user_id_2") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
+            cout << a << " ì—ì„œ " << res2->getString("user_id_2") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
         }
 
     }
@@ -219,15 +219,15 @@ void db_roomUserNameQuery() {
 }
 
 
-// ¸Ş½ÃÁö Àü¼Û ÀúÀå
+// ë©”ì‹œì§€ ì „ì†¡ ì €ì¥
 void db_messageSend() {
     db_init();
 
     cout << "225 # chatroom_num = " << tokens[3] << endl;
-    cout << "226 # tokens[1] Á¢¼ÓÁßÀÎ ¾ÆÀÌµğ = " << tokens[1] << endl;
-    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
+    cout << "226 # tokens[1] ì ‘ì†ì¤‘ì¸ ì•„ì´ë”” = " << tokens[1] << endl;
+    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
     string query_msg = "message_room_" + tokens[3];
-    cout << "È®ÀÎ¿ë : " << query_msg << endl;
+    cout << "í™•ì¸ìš© : " << query_msg << endl;
 
     std::string query = "INSERT INTO " + query_msg + " (number, user_id, content, time) VALUES(null, ? , ? , now())";
 
@@ -236,17 +236,17 @@ void db_messageSend() {
     while (res->next()) {
         number += 1;
     }*/
-    //cout << " num " << number << endl; //µğºñ ¹øÈ£ È®ÀÎ.
+    //cout << " num " << number << endl; //ë””ë¹„ ë²ˆí˜¸ í™•ì¸.
 
     pstmt = con->prepareStatement(query); // INSERT
-    pstmt->setString(1, tokens[1]); // º¸³½ »ç¶÷ ¾ÆÀÌµğ
-    pstmt->setString(2, tokens[2]); // º¸³½ ¸Ş¼¼Áö
-    pstmt->execute(); // ÀÌ°Å ÀÖ¾î¾ßÁö µğºñ¿¡ ÀúÀåµÊ.
+    pstmt->setString(1, tokens[1]); // ë³´ë‚¸ ì‚¬ëŒ ì•„ì´ë””
+    pstmt->setString(2, tokens[2]); // ë³´ë‚¸ ë©”ì„¸ì§€
+    pstmt->execute(); // ì´ê±° ìˆì–´ì•¼ì§€ ë””ë¹„ì— ì €ì¥ë¨.
 
-    cout << "¸Ş¼¼Áö°¡ ÀúÀåµÇ¾ú½À´Ï´Ù." << endl;
+    cout << "ë©”ì„¸ì§€ê°€ ì €ì¥ë˜ì—ˆìŠµë‹ˆë‹¤." << endl;
     // 
     string msg = "update";
-    cout << "º¸³½´Ù ¸Ş¼¼Áö 2°³" << endl;
+    cout << "ë³´ë‚¸ë‹¤ ë©”ì„¸ì§€ 2ê°œ" << endl;
     //
     std::vector<std::vector<std::string>> result;
     stmt = con->createStatement();
@@ -257,14 +257,14 @@ void db_messageSend() {
     string user_2;
     std::string query2 = "SELECT user_id_1, user_id_2 FROM chatroom WHERE room_num = ?";
     pstmt2 = con->prepareStatement(query2);
-    pstmt2->setString(1, tokens[3]); // tokens[3]¸¦ ÆÄ¶ó¹ÌÅÍ·Î Àü´Ş
+    pstmt2->setString(1, tokens[3]); // tokens[3]ë¥¼ íŒŒë¼ë¯¸í„°ë¡œ ì „ë‹¬
     res2 = pstmt2->executeQuery();
 
-    // °á°ú Ãâ·Â
+    // ê²°ê³¼ ì¶œë ¥
     while (res2->next()) {
-        //cout << "ÇöÀç Á¢¼ÓÁßÀÎ ¹æ ¹øÈ£ " << res2->getString("room_num") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
-        cout << "À¯Àú 1ÀÇ ID : " << res2->getString("user_id_1") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
-        cout << "À¯Àú 2ÀÇ ID : " << res2->getString("user_id_2") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
+        //cout << "í˜„ì¬ ì ‘ì†ì¤‘ì¸ ë°© ë²ˆí˜¸ " << res2->getString("room_num") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+        cout << "ìœ ì € 1ì˜ ID : " << res2->getString("user_id_1") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+        cout << "ìœ ì € 2ì˜ ID : " << res2->getString("user_id_2") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
         string temp1 = res2->getString("user_id_1");
         if (tokens[1] == temp1) {
             user_2 = res2->getString("user_id_2");
@@ -291,34 +291,34 @@ void db_messageSend() {
     //dm_send_dbup(53, "server", "1", msg, msg);
     //mtx.unlock();
     delete stmt;
-    // MySQL Connector/C++ Á¤¸®
+    // MySQL Connector/C++ ì •ë¦¬
 }
 
 void db_selectQuery() {
     db_init();
 
-    // SQL Äõ¸® ½ÇÇà
+    // SQL ì¿¼ë¦¬ ì‹¤í–‰
     stmt = con->createStatement();
-    res = stmt->executeQuery("SELECT * FROM message_room_1"); // from µÚ¿¡´Â ½ÇÁ¦·Î mysql ¿¡¼­ »ç¿ëÇÏ´Â Å×ÀÌºíÀÇ ÀÌ¸§À» ½á¾ßÇÑ´Ù.
+    res = stmt->executeQuery("SELECT * FROM message_room_1"); // from ë’¤ì—ëŠ” ì‹¤ì œë¡œ mysql ì—ì„œ ì‚¬ìš©í•˜ëŠ” í…Œì´ë¸”ì˜ ì´ë¦„ì„ ì¨ì•¼í•œë‹¤.
     delete stmt;
 
     cout << "\n";
-    cout << "SQL Äõ¸® ½ÇÇà (Æ¯Á¤ PK °ª¿¡ ÇØ´çÇÏ´Â Çà ¼±ÅÃ) \n";
-    // SQL Äõ¸® ½ÇÇà (Æ¯Á¤ PK °ª¿¡ ÇØ´çÇÏ´Â Çà ¼±ÅÃ)
-    string pkValue = "abcd"; // ½ÇÁ¦ PK °ªÀ¸·Î ´ëÃ¼
+    cout << "SQL ì¿¼ë¦¬ ì‹¤í–‰ (íŠ¹ì • PK ê°’ì— í•´ë‹¹í•˜ëŠ” í–‰ ì„ íƒ) \n";
+    // SQL ì¿¼ë¦¬ ì‹¤í–‰ (íŠ¹ì • PK ê°’ì— í•´ë‹¹í•˜ëŠ” í–‰ ì„ íƒ)
+    string pkValue = "abcd"; // ì‹¤ì œ PK ê°’ìœ¼ë¡œ ëŒ€ì²´
     //string query = "SELECT * FROM inventory WHERE id = '" + pkValue + "'";
-    // Å×ÀÌºí ÀÌ¸§, PK ¿­ ÀÌ¸§
+    // í…Œì´ë¸” ì´ë¦„, PK ì—´ ì´ë¦„
     stmt = con->createStatement();
     res = stmt->executeQuery("SELECT * FROM message_room_1");//WHERE user_id = '" + pkValue + "'
-    // °á°ú Ãâ·Â
+    // ê²°ê³¼ ì¶œë ¥
     while (res->next()) {
-        cout << "Column1: " << res->getString("number") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
-        cout << "Column2: " << res->getString("user_id") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
-        cout << "Column2: " << res->getString("content") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
-        cout << "Column2: " << res->getString("time") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
+        cout << "Column1: " << res->getString("number") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+        cout << "Column2: " << res->getString("user_id") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+        cout << "Column2: " << res->getString("content") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+        cout << "Column2: " << res->getString("time") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
     }
 
-    // MySQL Connector/C++ Á¤¸®
+    // MySQL Connector/C++ ì •ë¦¬
     delete pstmt;
     delete con;
 }
@@ -329,18 +329,18 @@ void db_login() {
     pstmt->setString(1, tokens[1]);
     res = pstmt->executeQuery();
 
-    cout << test_count << "¿¡ ³Ö¾î¿ä." << endl;
+    cout << test_count << "ì— ë„£ì–´ìš”." << endl;
 
-    // °á°ú°¡ ÀÖ´Ù¸é
+    // ê²°ê³¼ê°€ ìˆë‹¤ë©´
     //dm_send_result(const string& sender, int variable, const string& recipientUser)
     if (res->next()) {
-        string db_id = res->getString("user_id"); // µ¥ÀÌÅÍº£ÀÌ½ºÀÇ id ÀúÀå
-        string db_pw = res->getString("pw"); // µ¥ÀÌÅÍº£ÀÌ½ºÀÇ ºñ¹Ğ¹øÈ£ ÀúÀå
-        string db_name = res->getString("name"); // µ¥ÀÌÅÍº£ÀÌ½ºÀÇ ÀÌ¸§ ÀúÀå
+        string db_id = res->getString("user_id"); // ë°ì´í„°ë² ì´ìŠ¤ì˜ id ì €ì¥
+        string db_pw = res->getString("pw"); // ë°ì´í„°ë² ì´ìŠ¤ì˜ ë¹„ë°€ë²ˆí˜¸ ì €ì¥
+        string db_name = res->getString("name"); // ë°ì´í„°ë² ì´ìŠ¤ì˜ ì´ë¦„ ì €ì¥
 
-        // µ¥ÀÌÅÍº£ÀÌ½º¿¡ ÀúÀåµÈ µ¥ÀÌÅÍ¿Í ÀÔ·Â¹ŞÀº µ¥ÀÌÅÍ°¡ µ¿ÀÏÇÏ´Ù¸é
+        // ë°ì´í„°ë² ì´ìŠ¤ì— ì €ì¥ëœ ë°ì´í„°ì™€ ì…ë ¥ë°›ì€ ë°ì´í„°ê°€ ë™ì¼í•˜ë‹¤ë©´
         if (db_id == tokens[1] && db_pw == tokens[2]) {
-            string msg = "¡Ø·Î±×ÀÎ ¼º°ø!";
+            string msg = "â€»ë¡œê·¸ì¸ ì„±ê³µ!";
             login_result = true;
             int result = 1;
             int server_request = 1;
@@ -348,22 +348,22 @@ void db_login() {
             sck_list[str_test_count].user = db_name;
             dm_send_result(server_request, "server", result, test_count, db_name, db_id);
 
-            cout << sck_list[str_test_count].user << "È®ÀÎ@@@@@@@@@@@@@@@@@@@" << endl;
-            cout << msg << " ¶û " << db_name << endl;
+            cout << sck_list[str_test_count].user << "í™•ì¸@@@@@@@@@@@@@@@@@@@" << endl;
+            cout << msg << " ë‘ " << db_name << endl;
         }
         else if (db_id != tokens[1] || db_pw != tokens[2]) {
-            string msg = " 636 line ¡Ø ·Î±×ÀÎ ½ÇÆĞ ! ¾ÆÀÌµğ ¶Ç´Â ºñ¹Ğ¹øÈ£¸¦ È®ÀÎÇØÁÖ¼¼¿ä.";
+            string msg = " 636 line â€» ë¡œê·¸ì¸ ì‹¤íŒ¨ ! ì•„ì´ë”” ë˜ëŠ” ë¹„ë°€ë²ˆí˜¸ë¥¼ í™•ì¸í•´ì£¼ì„¸ìš”.";
             int result = 0;
             int server_request = 1;
-            dm_send_result(server_request, "server", result, test_count, "ÀÓ½ÃÀ¯Àú", "temp");
+            dm_send_result(server_request, "server", result, test_count, "ì„ì‹œìœ ì €", "temp");
             cout << msg << endl;
         }
     }
     else {
-        string msg = " ¡Ø 642line ·Î±×ÀÎ ½ÇÆĞ ! ¾ÆÀÌµğ ¶Ç´Â ºñ¹Ğ¹øÈ£¸¦ È®ÀÎÇØÁÖ¼¼¿ä.";
+        string msg = " â€» 642line ë¡œê·¸ì¸ ì‹¤íŒ¨ ! ì•„ì´ë”” ë˜ëŠ” ë¹„ë°€ë²ˆí˜¸ë¥¼ í™•ì¸í•´ì£¼ì„¸ìš”.";
         int result = 54321;
         int server_request = 1;
-        dm_send_result(server_request, "server", result, test_count, "ÀÓ½ÃÀ¯Àú", "temp");
+        dm_send_result(server_request, "server", result, test_count, "ì„ì‹œìœ ì €", "temp");
         cout << msg << endl;
     }
     return;
@@ -377,23 +377,23 @@ void db_countuser() {
     res = stmt->executeQuery("SELECT count(*) FROM users");
 
     while (res->next()) {
-        cout << "[°øÁö] ÇöÀç °¡ÀÔµÈ À¯Àú ¼ö : " << res->getString("count(*)") << endl;
+        cout << "[ê³µì§€] í˜„ì¬ ê°€ì…ëœ ìœ ì € ìˆ˜ : " << res->getString("count(*)") << endl;
     }
 
     delete pstmt;
     delete con;
 }
 
-//È¸¿ø°¡ÀÔ
+//íšŒì›ê°€ì…
 void db_join() {
 
     pstmt = con->prepareStatement("SELECT user_id, name, pw, phonenumber, nickname FROM users WHERE user_id = ?");
     pstmt->setString(1, tokens[1]);
     res = pstmt->executeQuery();
-    cout << "#323 ¿©±â±îÁö´Â?" << endl;
+    cout << "#323 ì—¬ê¸°ê¹Œì§€ëŠ”?" << endl;
 
     if (res->next()) {
-        cout << "#326 ÀÔ·ÂÇÑ ¾ÆÀÌµğ Á¸Àç" << endl;
+        cout << "#326 ì…ë ¥í•œ ì•„ì´ë”” ì¡´ì¬" << endl;
         join_result = false;
         int result = 3;
         int server_request = 4;
@@ -401,30 +401,31 @@ void db_join() {
         dm_send_result(server_request, "server", result, test_count, tokens[2],"temp");
     }
     else {
-        cout << "#334 ÀÔ·ÂÇÑ ¾ÆÀÌµğ ¾øÀ½" << endl;
+        cout << "#334 ì…ë ¥í•œ ì•„ì´ë”” ì—†ìŒ" << endl;
 
         stmt = con->createStatement();
-        pstmt = con->prepareStatement("INSERT INTO users (user_id, name, pw, phonenumber, nickname ) values(?,?,?,?,?)"); // INSERT
-        cout << "#336 ¿©±â?" << endl;
+        pstmt = con->prepareStatement("INSERT INTO users (user_id, name, pw, phonenumber, nickname) values(?,?,?,?,?)"); // INSERT
 
-        pstmt->setString(1, tokens[1]); //¾ÆÀÌµğ
-        pstmt->setString(2, tokens[2]); // ÀÌ¸§
-        pstmt->setString(3, tokens[3]); // ºñ¹Ğ¹øÈ£
-        pstmt->setString(4, tokens[4]); // ÀüÈ­¹øÈ£
-        pstmt->setString(5, tokens[5]); // ´Ğ³×ÀÓ
+        cout << "#336 ì—¬ê¸°?" << endl;
 
-        pstmt->execute(); // ÀÌ°Å ÀÖ¾î¾ßÁö µğºñ¿¡ ÀúÀåµÊ.
+        pstmt->setString(1, tokens[1]); //ì•„ì´ë””
+        pstmt->setString(2, tokens[2]); // ì´ë¦„
+        pstmt->setString(3, tokens[3]); // ë¹„ë°€ë²ˆí˜¸
+        pstmt->setString(4, tokens[4]); // ì „í™”ë²ˆí˜¸
+        pstmt->setString(5, tokens[5]); // ë‹‰ë„¤ì„
+
+        pstmt->execute(); // ì´ê±° ìˆì–´ì•¼ì§€ ë””ë¹„ì— ì €ì¥ë¨.
 
         cout << "#349 here?" << endl;
 
-        string msg = "¡Ø È¸¿ø°¡ÀÔ ¼º°ø!";
+        string msg = "â€» íšŒì›ê°€ì… ì„±ê³µ!";
         join_result = true;
         int result = 1;
         int server_request = 4;
         int str_test_count = stoi(test_count);
         sck_list[str_test_count].user = tokens[1];
         dm_send_result(server_request, "server", result, test_count, tokens[2],"temp");
-        cout << "½Å±Ô °èÁ¤ »ı¼ºÀÌ ¿Ï·áµÇ¾ú½À´Ï´Ù." << endl;
+        cout << "ì‹ ê·œ ê³„ì • ìƒì„±ì´ ì™„ë£Œë˜ì—ˆìŠµë‹ˆë‹¤." << endl;
     }
 }
 
@@ -435,10 +436,10 @@ void db_join_check() {
     res = pstmt->executeQuery();
 
     if (res->next()) {
-        cout << "#374 ÀÔ·ÂÇÑ ¾ÆÀÌµğ Á¸Àç" << endl;
+        cout << "#374 ì…ë ¥í•œ ì•„ì´ë”” ì¡´ì¬" << endl;
         join_check = false;
         user_check = true;
-        int result = 4; // ¾ÆÀÌµğ Ã¼Å© ½ÇÆĞ
+        int result = 4; // ì•„ì´ë”” ì²´í¬ ì‹¤íŒ¨
         int server_request = 4;
         int str_test_count = stoi(test_count);
         dm_send_result(server_request, "server", result, test_count, tokens[1],"temp");
@@ -447,7 +448,7 @@ void db_join_check() {
     else {
         join_check = true;
         user_check = false;
-        int result = 3; // ¾ÆÀÌµğ Ã¼Å© ¼º°ø °á°ú°ª
+        int result = 3; // ì•„ì´ë”” ì²´í¬ ì„±ê³µ ê²°ê³¼ê°’
         int server_request = 4;
         int str_test_count = stoi(test_count);
         dm_send_result(server_request, "server", result, test_count, tokens[1],"temp");
@@ -461,7 +462,7 @@ void db_join_check_ver2() {
     res = pstmt->executeQuery();
 
     if (res->next()) {
-        cout << "#408 ÀÔ·ÂÇÑ ¾ÆÀÌµğ Á¸Àç" << endl;
+        cout << "#408 ì…ë ¥í•œ ì•„ì´ë”” ì¡´ì¬" << endl;
         user_check = true;
         int result = 4; 
         int server_request = 6;
@@ -472,7 +473,7 @@ void db_join_check_ver2() {
     }
 
     else {
-        cout << "³×¹øÂ° È®ÀÎ" << endl;
+        cout << "ë„¤ë²ˆì§¸ í™•ì¸" << endl;
         user_check = false;
         int result = 3; // 
         int server_request = 6;
@@ -481,9 +482,9 @@ void db_join_check_ver2() {
     }
 }
 
-// È¸¿ø Á¤º¸ ¼öÁ¤ºÎºĞ
+// íšŒì› ì •ë³´ ìˆ˜ì •ë¶€ë¶„
 void db_UserEdit() {  
-    // µ¥ÀÌÅÍº£ÀÌ½º¿¡¼­ ÇöÀç ºñ¹Ğ¹øÈ£¸¦ °¡Á®¿À´Â Äõ¸®
+    // ë°ì´í„°ë² ì´ìŠ¤ì—ì„œ í˜„ì¬ ë¹„ë°€ë²ˆí˜¸ë¥¼ ê°€ì ¸ì˜¤ëŠ” ì¿¼ë¦¬
     string selectQuery = "SELECT pw FROM users WHERE user_id = ?";
     pstmt = con->prepareStatement(selectQuery);
     pstmt->setString(1, tokens[2]);
@@ -492,30 +493,30 @@ void db_UserEdit() {
     if (res->next()) {
         string database_password = res->getString("pw");
 
-        cout << database_password << " <- ÇöÀç ºñ¹Ğ¹øÈ£ÀÓ " << endl;
-        cout << tokens[1] << " <- ÇöÀç ºñ¹Ğ¹øÈ£ÀÓ " << endl;
+        cout << database_password << " <- í˜„ì¬ ë¹„ë°€ë²ˆí˜¸ì„ " << endl;
+        cout << tokens[1] << " <- í˜„ì¬ ë¹„ë°€ë²ˆí˜¸ì„ " << endl;
 
-        // »ç¿ëÀÚ°¡ ÀÔ·ÂÇÑ ºñ¹Ğ¹øÈ£¿Í µ¥ÀÌÅÍº£ÀÌ½ºÀÇ ºñ¹Ğ¹øÈ£ ºñ±³
+        // ì‚¬ìš©ìê°€ ì…ë ¥í•œ ë¹„ë°€ë²ˆí˜¸ì™€ ë°ì´í„°ë² ì´ìŠ¤ì˜ ë¹„ë°€ë²ˆí˜¸ ë¹„êµ
         if (tokens[1] == database_password) {
-            // ÀÔ·ÂÇÑ ºñ¹Ğ¹øÈ£¿Í µ¥ÀÌÅÍº£ÀÌ½º ºñ¹Ğ¹øÈ£°¡ ÀÏÄ¡ÇÏ¸é ¾÷µ¥ÀÌÆ® ¼öÇà
-            cout << "È®ÀÎ µÇ¾ú½À´Ï´Ù." << endl;
+            // ì…ë ¥í•œ ë¹„ë°€ë²ˆí˜¸ì™€ ë°ì´í„°ë² ì´ìŠ¤ ë¹„ë°€ë²ˆí˜¸ê°€ ì¼ì¹˜í•˜ë©´ ì—…ë°ì´íŠ¸ ìˆ˜í–‰
+            cout << "í™•ì¸ ë˜ì—ˆìŠµë‹ˆë‹¤." << endl;
             //dm_send_result(server_request, "server", result, test_count, db_name, db_id);
             int result = 1;
             int str_test_count = stoi(test_count);
             dm_send_resultEdit(8, "server", result, test_count);
-            cout << " 400¶óÀÎ " << result << " and " << test_count << endl;
+            cout << " 400ë¼ì¸ " << result << " and " << test_count << endl;
         }
         else {
-            cout << "ÀÔ·ÂÇÑ ºñ¹Ğ¹øÈ£°¡ ÀÏÄ¡ÇÏÁö ¾Ê½À´Ï´Ù." << endl;
+            cout << "ì…ë ¥í•œ ë¹„ë°€ë²ˆí˜¸ê°€ ì¼ì¹˜í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤." << endl;
             int result = 2;
             int str_test_count = stoi(test_count);
             dm_send_resultEdit(8, "server", result, test_count);
-            cout << " 400¶óÀÎ " << result << " and " << test_count << endl;
+            cout << " 400ë¼ì¸ " << result << " and " << test_count << endl;
 
         }
     }
     else {
-        cout << "¿¡·¯ : »ç¿ëÀÚÀÇ ·Î±×ÀÎ Á¤º¸¸¦ È®ÀÎÇÒ ¼ö ¾ø½À´Ï´Ù. (»ç¿ëÀÚ ¾ÆÀÌµğ°ª º¯Áú)" << endl;
+        cout << "ì—ëŸ¬ : ì‚¬ìš©ìì˜ ë¡œê·¸ì¸ ì •ë³´ë¥¼ í™•ì¸í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤. (ì‚¬ìš©ì ì•„ì´ë””ê°’ ë³€ì§ˆ)" << endl;
     }
 
     //cout << "Finished update table" << endl;
@@ -527,36 +528,36 @@ void db_UserEdit_update() {
 
 	string updateQuery = "UPDATE users SET pw = ? WHERE user_id = ?";
 	pstmt = con->prepareStatement(updateQuery);
-	pstmt->setString(1, tokens[1]); //ÅäÅ«Áî1ÀÌ ¹Ù²Üºñ¹Ğ¹øÈ£
-	pstmt->setString(2, tokens[2]); //ÅäÅ«Áî2°¡ À¯Àú¾ÆÀÌµğ
+	pstmt->setString(1, tokens[1]); //í† í°ì¦ˆ1ì´ ë°”ê¿€ë¹„ë°€ë²ˆí˜¸
+	pstmt->setString(2, tokens[2]); //í† í°ì¦ˆ2ê°€ ìœ ì €ì•„ì´ë””
     pstmt->executeUpdate();
 	
-    cout << tokens[2] << " ÀÇ ºñ¹Ğ¹øÈ£°¡ º¯°æ µÇ¾ú½À´Ï´Ù." << endl;
+    cout << tokens[2] << " ì˜ ë¹„ë°€ë²ˆí˜¸ê°€ ë³€ê²½ ë˜ì—ˆìŠµë‹ˆë‹¤." << endl;
     //dm_send_result(server_request, "server", result, test_count, db_name, db_id);
     int result = 3;
     int str_test_count = stoi(test_count);
     dm_send_resultEdit(8, "server", result, test_count);
-    cout << " 400¶óÀÎ " << result << " and " << test_count << endl;
+    cout << " 400ë¼ì¸ " << result << " and " << test_count << endl;
 
 }
 
 void db_selectQuery_ver2() {
-    // Ã³¸®ÇÒ ¹öÆÛ string msg = User_request + " " + login_User_id + " " + chatting_friend + " " + chatting_roomnum;
+    // ì²˜ë¦¬í•  ë²„í¼ string msg = User_request + " " + login_User_id + " " + chatting_friend + " " + chatting_roomnum;
     std::vector<std::vector<std::string>> result;
-    cout << "Ä£±¸ ¸ñ·ÏÀ» º¸³À´Ï´Ù." << endl;
+    cout << "ì¹œêµ¬ ëª©ë¡ì„ ë³´ëƒ…ë‹ˆë‹¤." << endl;
     db_init();
-    // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà;
+    // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰;
     string user_2;
 
     cout << "901 # chatroom_num " << tokens[3] << endl;
     stmt = con->createStatement();
     res = stmt->executeQuery("SELECT user_id_1, user_id_2 FROM chatroom WHERE room_num = '" + tokens[3] + "'");
-    cout << "904 # tokens[1] Á¢¼ÓÁßÀÎ ¾ÆÀÌµğ = " << tokens[1] << endl;
-    // °á°ú Ãâ·Â
+    cout << "904 # tokens[1] ì ‘ì†ì¤‘ì¸ ì•„ì´ë”” = " << tokens[1] << endl;
+    // ê²°ê³¼ ì¶œë ¥
     while (res->next()) {
-        //cout << "ÇöÀç Á¢¼ÓÁßÀÎ ¹æ ¹øÈ£ " << res2->getString("room_num") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
-        cout << "À¯Àú 1ÀÇ ID : " << res->getString("user_id_1") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
-        cout << "À¯Àú 2ÀÇ ID : " << res->getString("user_id_2") << endl; // ("ÇÊµåÀÌ¸§")À» ½á¾ßÇÔ. ÇÊµåÀÌ¸§ ¿øÇÏ´Â°Å!
+        //cout << "í˜„ì¬ ì ‘ì†ì¤‘ì¸ ë°© ë²ˆí˜¸ " << res2->getString("room_num") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+        cout << "ìœ ì € 1ì˜ ID : " << res->getString("user_id_1") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
+        cout << "ìœ ì € 2ì˜ ID : " << res->getString("user_id_2") << endl; // ("í•„ë“œì´ë¦„")ì„ ì¨ì•¼í•¨. í•„ë“œì´ë¦„ ì›í•˜ëŠ”ê±°!
         string temp1 = res->getString("user_id_1");
         if (tokens[1] == temp1) {
             user_2 = res->getString("user_id_2");
@@ -565,9 +566,9 @@ void db_selectQuery_ver2() {
             user_2 = res->getString("user_id_1");
         }
     }
-    cout << " 919 # ÀúÀåµÈ user_2 = " << user_2 << endl;
+    cout << " 919 # ì €ì¥ëœ user_2 = " << user_2 << endl;
     string query_msg = "message_room_" + tokens[3];
-    cout << "È®ÀÎ¿ë : " << query_msg << endl;
+    cout << "í™•ì¸ìš© : " << query_msg << endl;
 
     std::string query = "SELECT number, user_id, content, time FROM " + query_msg;
 
@@ -589,7 +590,7 @@ void db_selectQuery_ver2() {
         for (const std::string& value : row) {
             std::cout << value << " ";
         }
-        std::cout << " 941 # ¹éÅÍ Å×½ºÆ® " << std::endl;
+        std::cout << " 941 # ë°±í„° í…ŒìŠ¤íŠ¸ " << std::endl;
     }*/
 
     dm_send_db(5, "server", test_count, user_2, result);
@@ -606,12 +607,12 @@ void dm_send_dbup(int server_request, const string& sender, const std::string& r
             //if (sck_list[i].login_status == true) {
             cout << "dm_send_dbup " << msg << endl;
             send(sck_list[i].sck, msg.c_str(), msg.length(), 0);
-            return; // Æ¯Á¤ »ç¿ëÀÚ¿¡°Ô ¸Ş½ÃÁö¸¦ º¸³»¸é ÇÔ¼ö Á¾·á
+            return; // íŠ¹ì • ì‚¬ìš©ìì—ê²Œ ë©”ì‹œì§€ë¥¼ ë³´ë‚´ë©´ í•¨ìˆ˜ ì¢…ë£Œ
             //}
         }
     }
 
-    // »ç¿ëÀÚ¸¦ Ã£Áö ¸øÇÑ °æ¿ì, ¿¡·¯ ¸Ş½ÃÁö Ãâ·Â ¶Ç´Â ´Ù¸¥ Ã³¸®¸¦ Ãß°¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.
+    // ì‚¬ìš©ìë¥¼ ì°¾ì§€ ëª»í•œ ê²½ìš°, ì—ëŸ¬ ë©”ì‹œì§€ ì¶œë ¥ ë˜ëŠ” ë‹¤ë¥¸ ì²˜ë¦¬ë¥¼ ì¶”ê°€í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
 }
 
 void dm_send_db(int server_request, const string& sender, const std::string & recipientUser, const std::string& user_2, const std::vector<std::vector<std::string>>&result) {
@@ -619,9 +620,9 @@ void dm_send_db(int server_request, const string& sender, const std::string & re
     std::string resultStr;
     for (const std::vector<std::string>& row : result) {
         for (const std::string& value : row) {
-            resultStr += value + " "; // °ø¹éÀ» ±¸ºĞÀÚ·Î »ç¿ë
+            resultStr += value + " "; // ê³µë°±ì„ êµ¬ë¶„ìë¡œ ì‚¬ìš©
         }
-        resultStr += "\n"; // °¢ ÇàÀ» °³Çà ¹®ÀÚ·Î ±¸ºĞ
+        resultStr += "\n"; // ê° í–‰ì„ ê°œí–‰ ë¬¸ìë¡œ êµ¬ë¶„
     }
     string msg = serv_request + " " + sender + " " + recipientUser + " " + user_2 + "/" + resultStr;
     for (int i = 0; i < client_count; i++) {
@@ -629,12 +630,12 @@ void dm_send_db(int server_request, const string& sender, const std::string & re
             //if (sck_list[i].login_status == true) {
             cout << "dm_send_db " << msg << endl;
             send(sck_list[i].sck, msg.c_str(), msg.length(), 0);
-            return; // Æ¯Á¤ »ç¿ëÀÚ¿¡°Ô ¸Ş½ÃÁö¸¦ º¸³»¸é ÇÔ¼ö Á¾·á
+            return; // íŠ¹ì • ì‚¬ìš©ìì—ê²Œ ë©”ì‹œì§€ë¥¼ ë³´ë‚´ë©´ í•¨ìˆ˜ ì¢…ë£Œ
             //}
         }
     }
 
-    // »ç¿ëÀÚ¸¦ Ã£Áö ¸øÇÑ °æ¿ì, ¿¡·¯ ¸Ş½ÃÁö Ãâ·Â ¶Ç´Â ´Ù¸¥ Ã³¸®¸¦ Ãß°¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.
+    // ì‚¬ìš©ìë¥¼ ì°¾ì§€ ëª»í•œ ê²½ìš°, ì—ëŸ¬ ë©”ì‹œì§€ ì¶œë ¥ ë˜ëŠ” ë‹¤ë¥¸ ì²˜ë¦¬ë¥¼ ì¶”ê°€í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
 }
 
 
@@ -644,12 +645,12 @@ void db_userlist() {
     stmt = con->createStatement();
     res = stmt->executeQuery("SELECT * FROM users");
 
-    cout << "[ÇöÀç °¡ÀÔµÈ À¯Àú ¸ñ·Ï]" << endl;
+    cout << "[í˜„ì¬ ê°€ì…ëœ ìœ ì € ëª©ë¡]" << endl;
     while (res->next()) {
         cout << "ID : " << res->getString("user_id") << endl;
     }
 }
-// »õ·Î ÀÛ¾÷ÇÑ ÇÔ¼ö
+// ìƒˆë¡œ ì‘ì—…í•œ í•¨ìˆ˜
 void db_findID() {
     cout << "tokens[0] : " << tokens[0] << endl;
     cout << "tokens[0] : " << tokens[1] << endl;
@@ -659,34 +660,34 @@ void db_findID() {
     pstmt->setString(1, tokens[2]);
     res = pstmt->executeQuery();
 
-    // °á°ú°¡ ÀÖ´Ù¸é
+    // ê²°ê³¼ê°€ ìˆë‹¤ë©´
     //dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser)
     if (res->next()) {
         string db_id = res->getString("user_id");
         string db_name = res->getString("name");
         string db_phonenumber = res->getString("phonenumber");
 
-        // µ¥ÀÌÅÍº£ÀÌ½º¿¡ ÀúÀåµÈ µ¥ÀÌÅÍ¿Í ÀÔ·Â¹ŞÀº µ¥ÀÌÅÍ°¡ µ¿ÀÏÇÏ´Ù¸é
+        // ë°ì´í„°ë² ì´ìŠ¤ì— ì €ì¥ëœ ë°ì´í„°ì™€ ì…ë ¥ë°›ì€ ë°ì´í„°ê°€ ë™ì¼í•˜ë‹¤ë©´
         if (db_name == tokens[1] && db_phonenumber == tokens[2]) {
-            int result = 1; // ¼º°ø ½Ã °á°ú°ª
-            int server_request = 2; // ID Ã£±â ¹øÈ£
+            int result = 1; // ì„±ê³µ ì‹œ ê²°ê³¼ê°’
+            int server_request = 2; // ID ì°¾ê¸° ë²ˆí˜¸
             cout << " 485" << endl;
             int str_test_count = stoi(test_count);
             dm_send_findResult(server_request, "server", result, test_count, db_id); // findValue = user_id
         }
         else {
-            int result = 2; // ½ÇÆĞ ½Ã °á°ú°ª
-            int server_request = 2; // ID Ã£±â ¹øÈ£
-            string fail = "½ÇÆĞ";
+            int result = 2; // ì‹¤íŒ¨ ì‹œ ê²°ê³¼ê°’
+            int server_request = 2; // ID ì°¾ê¸° ë²ˆí˜¸
+            string fail = "ì‹¤íŒ¨";
             cout << " 492" << endl;
             int str_test_count = stoi(test_count);
             dm_send_findResult(server_request, "server", result, test_count, fail); // findValue = fail
         }
     }
     else {
-        int result = 2; // ½ÇÆĞ ½Ã °á°ú°ª
-        int server_request = 2; // ID Ã£±â ¹øÈ£
-        string fail = "½ÇÆĞ";
+        int result = 2; // ì‹¤íŒ¨ ì‹œ ê²°ê³¼ê°’
+        int server_request = 2; // ID ì°¾ê¸° ë²ˆí˜¸
+        string fail = "ì‹¤íŒ¨";
         cout << " 500" << endl;
         int str_test_count = stoi(test_count);
         dm_send_findResult(server_request, "server", result, test_count, fail); // findValue = fail
@@ -703,7 +704,7 @@ void db_findPW() {
     pstmt->setString(1, tokens[1]);
     res = pstmt->executeQuery();
 
-    // °á°ú°¡ ÀÖ´Ù¸é
+    // ê²°ê³¼ê°€ ìˆë‹¤ë©´
     //dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser)
     if (res->next()) {
         string db_id = res->getString("user_id");
@@ -711,27 +712,27 @@ void db_findPW() {
         string db_pw = res->getString("pw");
         string db_phonenumber = res->getString("phonenumber");
 
-        // µ¥ÀÌÅÍº£ÀÌ½º¿¡ ÀúÀåµÈ µ¥ÀÌÅÍ¿Í ÀÔ·Â¹ŞÀº µ¥ÀÌÅÍ°¡ µ¿ÀÏÇÏ´Ù¸é
+        // ë°ì´í„°ë² ì´ìŠ¤ì— ì €ì¥ëœ ë°ì´í„°ì™€ ì…ë ¥ë°›ì€ ë°ì´í„°ê°€ ë™ì¼í•˜ë‹¤ë©´
         if (db_id == tokens[1] && db_name == tokens[2] && db_phonenumber == tokens[3]) {
-            int result = 1; // ¼º°ø ½Ã °á°ú°ª
-            int server_request = 3; // PW Ã£±â ¹øÈ£
+            int result = 1; // ì„±ê³µ ì‹œ ê²°ê³¼ê°’
+            int server_request = 3; // PW ì°¾ê¸° ë²ˆí˜¸
             cout << " 565" << endl;
             int str_test_count = stoi(test_count);
             dm_send_findResult(server_request, "server", result, test_count, db_pw); // findValue = user_id
         }
         else {
-            int result = 2; // ½ÇÆĞ ½Ã °á°ú°ª
-            int server_request = 3; // PW Ã£±â ¹øÈ£
-            string fail = "½ÇÆĞ";
+            int result = 2; // ì‹¤íŒ¨ ì‹œ ê²°ê³¼ê°’
+            int server_request = 3; // PW ì°¾ê¸° ë²ˆí˜¸
+            string fail = "ì‹¤íŒ¨";
             cout << " 572" << endl;
             int str_test_count = stoi(test_count);
             dm_send_findResult(server_request, "server", result, test_count, fail); // findValue = fail
         }
     }
     else {
-        int result = 2; // ½ÇÆĞ ½Ã °á°ú°ª
-        int server_request = 2; // ID Ã£±â ¹øÈ£
-        string fail = "½ÇÆĞ";
+        int result = 2; // ì‹¤íŒ¨ ì‹œ ê²°ê³¼ê°’
+        int server_request = 2; // ID ì°¾ê¸° ë²ˆí˜¸
+        string fail = "ì‹¤íŒ¨";
         cout << " 500" << endl;
         int str_test_count = stoi(test_count);
         dm_send_findResult(server_request, "server", result, test_count, fail); // findValue = fail
@@ -742,7 +743,7 @@ void db_callMessage() {
     db_init();
 
     string num;
-    cout << "ºÒ·¯¿Ã Ã¤ÆÃ¹æ ¹øÈ£¸¦ ÀÔ·ÂÇÏ¼¼¿ä. : "; // Ã¤ÆÃ¹æ ¹øÈ£µµ À¯Àú Á¤º¸¿¡¼­ Ãâ·ÂÇØÁà¾ßÇÒ µí
+    cout << "ë¶ˆëŸ¬ì˜¬ ì±„íŒ…ë°© ë²ˆí˜¸ë¥¼ ì…ë ¥í•˜ì„¸ìš”. : "; // ì±„íŒ…ë°© ë²ˆí˜¸ë„ ìœ ì € ì •ë³´ì—ì„œ ì¶œë ¥í•´ì¤˜ì•¼í•  ë“¯
     cin >> num;
     stmt = con->createStatement();
     res = stmt->executeQuery("SELECT * FROM message_room where chatroom_num = '" + num + "'");
@@ -759,21 +760,21 @@ void db_friend_list() {
 
     cout << "tokens[1] : " << tokens[1] << endl;
     
-    std::vector<std::string> f_lists; // Ä£±¸ ¸ñ·Ï ÀúÀåÇÒ ¹è¿­
+    std::vector<std::string> f_lists; // ì¹œêµ¬ ëª©ë¡ ì €ì¥í•  ë°°ì—´
     std::string f_list;
 
     pstmt = con->prepareStatement("SELECT GROUP_CONCAT(friend_id SEPARATOR ' ') FROM friend_list WHERE user_id = ?");
     pstmt->setString(1, tokens[1]);
     res = pstmt->executeQuery();
 
-    cout << "# 666 ¿©±â µÊ?" << endl;
+    cout << "# 666 ì—¬ê¸° ë¨?" << endl;
     if (res->next()) {
         cout << res->getString(1) << endl;
-        f_list = res->getString(1); // Äõ¸®¹® °á°ú ÀúÀå
+        f_list = res->getString(1); // ì¿¼ë¦¬ë¬¸ ê²°ê³¼ ì €ì¥
 
         if (f_list.empty() == false) {
             cout << f_list << endl;
-            f_lists.push_back(f_list); // ¹è¿­¿¡ Äõ¸®¹® °á°ú »ğÀÔ
+            f_lists.push_back(f_list); // ë°°ì—´ì— ì¿¼ë¦¬ë¬¸ ê²°ê³¼ ì‚½ì…
 
             cout << f_lists[0] << endl;
             cout << f_lists.size() << endl;
@@ -800,15 +801,15 @@ void db_friend_register() {
     pstmt->setString(1, tokens[2]);
     res = pstmt->executeQuery();
 
-    // À¯Àú Å×ÀÌºí¿¡ ÀÔ·ÂÇÑ Ä£±¸ ¾ÆÀÌµğ°¡ Á¸ÀçÇÏ¸é
+    // ìœ ì € í…Œì´ë¸”ì— ì…ë ¥í•œ ì¹œêµ¬ ì•„ì´ë””ê°€ ì¡´ì¬í•˜ë©´
     if (res->next()) {
         pstmt = con->prepareStatement("SELECT friend_id FROM friend_list WHERE user_id = ? and friend_id = ?");
         pstmt->setString(1, tokens[1]);
         pstmt->setString(2, tokens[2]);
         res = pstmt->executeQuery();
 
-        cout << "#645 ¿©±â ?" << endl;
-        // Ä£±¸ ¸®½ºÆ® Å×ÀÌºí¿¡ Ä£±¸ ¾ÆÀÌµğ°¡ ÀÌ¹Ì Á¸ÀçÇÑ´Ù¸é
+        cout << "#645 ì—¬ê¸° ?" << endl;
+        // ì¹œêµ¬ ë¦¬ìŠ¤íŠ¸ í…Œì´ë¸”ì— ì¹œêµ¬ ì•„ì´ë””ê°€ ì´ë¯¸ ì¡´ì¬í•œë‹¤ë©´
         if (res->next()) {
             int result = 2;
             int server_request = 7;
@@ -816,7 +817,7 @@ void db_friend_register() {
             int str_test_count = stoi(test_count);
             dm_send_result(server_request, "server", result, test_count, "temp", tokens[1]);
         }
-        else { // µ¿ÀÏÇÑ »ç¶÷µéÀ» ¹ø°¥¾Æ°¡¸ç µÎ ¹ø ÀúÀå
+        else { // ë™ì¼í•œ ì‚¬ëŒë“¤ì„ ë²ˆê°ˆì•„ê°€ë©° ë‘ ë²ˆ ì €ì¥
             pstmt = con->prepareStatement("INSERT INTO friend_list (user_id, friend_id) VALUES (?, ?)");
             pstmt->setString(1, tokens[1]);
             pstmt->setString(2, tokens[2]);
@@ -835,7 +836,7 @@ void db_friend_register() {
 
         }
     }
-    // À¯Àú Å×ÀÌºí¿¡ ÀÔ·ÂÇÑ Ä£±¸ ¾ÆÀÌµğ°¡ Á¸ÀçÇÏÁö ¾ÊÀ» ¶§
+    // ìœ ì € í…Œì´ë¸”ì— ì…ë ¥í•œ ì¹œêµ¬ ì•„ì´ë””ê°€ ì¡´ì¬í•˜ì§€ ì•Šì„ ë•Œ
     else {
         int result = 3;
         int server_request = 7;
@@ -848,7 +849,7 @@ void db_friend_register() {
 
 void db_chat_list() {
 
-    std::vector<std::string> chat_lists; // Ä£±¸ ¸ñ·Ï ÀúÀåÇÒ ¹è¿­
+    std::vector<std::string> chat_lists; // ì¹œêµ¬ ëª©ë¡ ì €ì¥í•  ë°°ì—´
     std::string chat_list_1, chat_list_2, msg;
 
     pstmt = con->prepareStatement("SELECT GROUP_CONCAT(user_id_2 SEPARATOR ' ') FROM chatroom WHERE user_id_1 = ?");
@@ -863,7 +864,7 @@ void db_chat_list() {
 
     if (res->next()) {
         chat_list_1 = res->getString(1);
-        cout << "user_id_1 ±âÁØ : " << chat_list_1 << endl;
+        cout << "user_id_1 ê¸°ì¤€ : " << chat_list_1 << endl;
         if (chat_list_1.empty() != true) {
             chat_lists.push_back(chat_list_1);
         }
@@ -871,7 +872,7 @@ void db_chat_list() {
 
     if (res2->next()) {
         chat_list_2 = res2->getString(1);
-        cout << "user_id_2 ±âÁØ : " << chat_list_2 << endl;
+        cout << "user_id_2 ê¸°ì¤€ : " << chat_list_2 << endl;
         if (chat_list_2.empty() != true) {
             chat_lists.push_back(chat_list_2);
         }
@@ -900,8 +901,7 @@ void db_chat_list() {
 
 void db_chat_room() {
 
-    string chatroom_num, num, create_num;
-    int a;
+    string chatroom_num, num, create_num, count;
 
 	pstmt = con->prepareStatement("SELECT room_num FROM chatroom WHERE user_id_1 = ? and user_id_2 = ? or user_id_1 = ? and user_id_2 = ?");
 	pstmt->setString(1, tokens[1]);
@@ -909,31 +909,27 @@ void db_chat_room() {
 	pstmt->setString(3, tokens[2]);
 	pstmt->setString(4, tokens[1]);
 	res = pstmt->executeQuery();
-	cout << " # 856 tokens[1] [2] = " << tokens[1] <<" ¶û " << tokens[2] << endl;
+	cout << " # 856 tokens[1] [2] = " << tokens[1] <<" ë‘ " << tokens[2] << endl;
 
     if (res->next()) {
         chatroom_num = res->getString(1);
-        cout << " # 861 : °ª È®ÀÎ¿ë : " << chatroom_num << endl;
+        cout << " # 861 : ê°’ í™•ì¸ìš© : " << chatroom_num << endl;
         //void dm_send_chat_user(int server_request, const string& sender, const std::string& recipientUser, const std::string& msg2);
         dm_send_chat_user(601, "server", test_count, tokens[2], chatroom_num);
         delete stmt;
 
-	}	else {
+	}
+    else {
         stmt = con->createStatement();
-        pstmt = con->prepareStatement("INSERT INTO chatroom VALUES (null, ?, ?)");
-        pstmt->setString(1, tokens[1]); //·Î±×ÀÎÇØ¼­ ¿äÃ»ÇÑ »ç¶÷
-        pstmt->setString(2, tokens[2]); //±× »ç¶÷ÀÌ ¼±ÅÃÇÑ »ç¶÷
+        pstmt = con->prepareStatement("INSERT INTO chatroom VALUES (null, ?, ?)"); // ë©”ì„¸ì§€ DB ìƒì„± ì „ chatlistì— ë²ˆí˜¸ ìƒˆë¡œ ìƒì„±
+        pstmt->setString(1, tokens[1]); //ë¡œê·¸ì¸í•´ì„œ ìš”ì²­í•œ ì‚¬ëŒ
+        pstmt->setString(2, tokens[2]); //ê·¸ ì‚¬ëŒì´ ì„ íƒí•œ ì‚¬ëŒ
         pstmt->executeQuery();
 		cout << " # 902" << endl;
 
-        db_create_chatroom(tokens[1], tokens[2]);
-
-		int result = 4; // DB¿¡ ´ëÈ­¹æ »ı¼º ¼º°ø °á°ú°ª
-		int server_request = 5;
-		cout << "# 908" << endl;
-		int str_test_count = stoi(test_count);
-		dm_send_result(server_request, "server", result, test_count, "temp", tokens[1]);
-	}
+        db_create_chatroom(tokens[1], tokens[2]); // ë©”ì„¸ì§€ ì €ì¥í•  DB ìƒì„±
+    
+    }
 
 }
 
@@ -946,7 +942,7 @@ void db_create_chatroom(string user_id_1, string user_id_2) {
     
     if (res->next()) {
         string create_num = res->getString(1);
-        cout << " # 924 °á°ú : " << create_num << endl;
+        cout << " # 942 ê²°ê³¼ : " << create_num << endl;
         string msg = "message_room_" + create_num;
         string query = "CREATE TABLE " + msg + " (number int primary key auto_increment, user_id VARCHAR(10) not null, content VARCHAR(255) not null, time datetime not null)";
 
@@ -956,27 +952,33 @@ void db_create_chatroom(string user_id_1, string user_id_2) {
         delete stmt;
         delete con;
 
-        cout << " # 934 µÎ ¹øÂ° È®ÀÎ" << endl;
+        cout << " # 952 ë‘ ë²ˆì§¸ í™•ì¸" << endl;
+
+        cout << "í™•ì¸ìš© : " << create_num << endl;
+        cout << "# 925" << endl;
+
+        dm_send_chat_user(601, "server", test_count, tokens[2], create_num);
     }
 }
 
+
 int main() {
     WSADATA wsa;
-    system("title ¼­¹ö");
-    // Winsock¸¦ ÃÊ±âÈ­ÇÏ´Â ÇÔ¼ö. MAKEWORD(2, 2)´Â WinsockÀÇ 2.2 ¹öÀüÀ» »ç¿ëÇÏ°Ú´Ù´Â ÀÇ¹Ì.
-    // ½ÇÇà¿¡ ¼º°øÇÏ¸é 0À», ½ÇÆĞÇÏ¸é ±× ÀÌ¿ÜÀÇ °ªÀ» ¹İÈ¯.
-    // 0À» ¹İÈ¯Çß´Ù´Â °ÍÀº WinsockÀ» »ç¿ëÇÒ ÁØºñ°¡ µÇ¾ú´Ù´Â ÀÇ¹Ì.
+    system("title ì„œë²„");
+    // Winsockë¥¼ ì´ˆê¸°í™”í•˜ëŠ” í•¨ìˆ˜. MAKEWORD(2, 2)ëŠ” Winsockì˜ 2.2 ë²„ì „ì„ ì‚¬ìš©í•˜ê² ë‹¤ëŠ” ì˜ë¯¸.
+    // ì‹¤í–‰ì— ì„±ê³µí•˜ë©´ 0ì„, ì‹¤íŒ¨í•˜ë©´ ê·¸ ì´ì™¸ì˜ ê°’ì„ ë°˜í™˜.
+    // 0ì„ ë°˜í™˜í–ˆë‹¤ëŠ” ê²ƒì€ Winsockì„ ì‚¬ìš©í•  ì¤€ë¹„ê°€ ë˜ì—ˆë‹¤ëŠ” ì˜ë¯¸.
     int code = WSAStartup(MAKEWORD(2, 2), &wsa);
     if (!code) {
         server_init();
         std::thread th1[MAX_CLIENT];
         for (int i = 0; i < MAX_CLIENT; i++) {
-            // ÀÎ¿ø ¼ö ¸¸Å­ thread »ı¼ºÇØ¼­ °¢°¢ÀÇ Å¬¶óÀÌ¾ğÆ®°¡ µ¿½Ã¿¡ ¼ÒÅëÇÒ ¼ö ÀÖµµ·Ï ÇÔ.
+            // ì¸ì› ìˆ˜ ë§Œí¼ thread ìƒì„±í•´ì„œ ê°ê°ì˜ í´ë¼ì´ì–¸íŠ¸ê°€ ë™ì‹œì— ì†Œí†µí•  ìˆ˜ ìˆë„ë¡ í•¨.
             th1[i] = std::thread(add_client);
         }
         //recv_msg(sck_list[client_count].user_number);
-        //std::thread th1(add_client); // ÀÌ·¸°Ô ÇÏ¸é ÇÏ³ªÀÇ client¸¸ ¹Ş¾ÆÁü...
-        while (1) { // ¹«ÇÑ ¹İº¹¹®À» »ç¿ëÇÏ¿© ¼­¹ö°¡ °è¼ÓÇØ¼­ Ã¤ÆÃ º¸³¾ ¼ö ÀÖ´Â »óÅÂ¸¦ ¸¸µé¾î ÁÜ. ¹İº¹¹®À» »ç¿ëÇÏÁö ¾ÊÀ¸¸é ÇÑ ¹ø¸¸ º¸³¾ ¼ö ÀÖÀ½.            
+        //std::thread th1(add_client); // ì´ë ‡ê²Œ í•˜ë©´ í•˜ë‚˜ì˜ clientë§Œ ë°›ì•„ì§...
+        while (1) { // ë¬´í•œ ë°˜ë³µë¬¸ì„ ì‚¬ìš©í•˜ì—¬ ì„œë²„ê°€ ê³„ì†í•´ì„œ ì±„íŒ… ë³´ë‚¼ ìˆ˜ ìˆëŠ” ìƒíƒœë¥¼ ë§Œë“¤ì–´ ì¤Œ. ë°˜ë³µë¬¸ì„ ì‚¬ìš©í•˜ì§€ ì•Šìœ¼ë©´ í•œ ë²ˆë§Œ ë³´ë‚¼ ìˆ˜ ìˆìŒ.            
             string text, msg = "";
             std::getline(cin, text);
             const char* buf = text.c_str();
@@ -986,16 +988,16 @@ int main() {
         }
         for (int i = 0; i < MAX_CLIENT; i++) {
             th1[i].join();
-            //join : ÇØ´çÇÏ´Â thread µéÀÌ ½ÇÇàÀ» Á¾·áÇÏ¸é ¸®ÅÏÇÏ´Â ÇÔ¼ö.
-            //join ÇÔ¼ö°¡ ¾øÀ¸¸é main ÇÔ¼ö°¡ ¸ÕÀú Á¾·áµÇ¾î¼­ thread°¡ ¼Ò¸êÇÏ°Ô µÊ.
-            //thread ÀÛ¾÷ÀÌ ³¡³¯ ¶§±îÁö main ÇÔ¼ö°¡ ³¡³ªÁö ¾Êµµ·Ï ÇØÁÜ.
+            //join : í•´ë‹¹í•˜ëŠ” thread ë“¤ì´ ì‹¤í–‰ì„ ì¢…ë£Œí•˜ë©´ ë¦¬í„´í•˜ëŠ” í•¨ìˆ˜.
+            //join í•¨ìˆ˜ê°€ ì—†ìœ¼ë©´ main í•¨ìˆ˜ê°€ ë¨¼ì € ì¢…ë£Œë˜ì–´ì„œ threadê°€ ì†Œë©¸í•˜ê²Œ ë¨.
+            //thread ì‘ì—…ì´ ëë‚  ë•Œê¹Œì§€ main í•¨ìˆ˜ê°€ ëë‚˜ì§€ ì•Šë„ë¡ í•´ì¤Œ.
         }
         //th1.join();
         //th.join();
         closesocket(server_sock.sck);
     }
     else {
-        cout << "ÇÁ·Î±×·¥ Á¾·á. (Error code : " << code << ")";
+        cout << "í”„ë¡œê·¸ë¨ ì¢…ë£Œ. (Error code : " << code << ")";
     }
 
     
@@ -1005,18 +1007,18 @@ int main() {
 }
 void server_init() {
     server_sock.sck = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    // InternetÀÇ Stream ¹æ½ÄÀ¸·Î ¼ÒÄÏ »ı¼º
-   // SOCKET_INFOÀÇ ¼ÒÄÏ °´Ã¼¿¡ socket ÇÔ¼ö ¹İÈ¯°ª(µğ½ºÅ©¸³ÅÍ ÀúÀå)
-   // ÀÎÅÍ³İ ÁÖ¼ÒÃ¼°è, ¿¬°áÁöÇâ, TCP ÇÁ·ÎÅäÄİ ¾µ °Í.
-    SOCKADDR_IN server_addr = {}; // ¼ÒÄÏ ÁÖ¼Ò ¼³Á¤ º¯¼ö
-    // ÀÎÅÍ³İ ¼ÒÄÏ ÁÖ¼ÒÃ¼°è server_addr
-    server_addr.sin_family = AF_INET; // ¼ÒÄÏÀº Internet Å¸ÀÔ
-    server_addr.sin_port = htons(7777); // ¼­¹ö Æ÷Æ® ¼³Á¤
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);  // ¼­¹öÀÌ±â ¶§¹®¿¡ local ¼³Á¤ÇÑ´Ù.
-    //AnyÀÎ °æ¿ì´Â È£½ºÆ®¸¦ 127.0.0.1·Î Àâ¾Æµµ µÇ°í localhost·Î Àâ¾Æµµ µÇ°í ¾çÂÊ ´Ù Çã¿ëÇÏ°Ô ÇÒ ¼ö ÀÖµû. ±×°ÍÀÌ INADDR_ANYÀÌ´Ù.
-    //ip ÁÖ¼Ò¸¦ ÀúÀåÇÒ ¶© server_addr.sin_addr.s_addr -- Á¤ÇØÁø ¸ğ¾ç?
-    bind(server_sock.sck, (sockaddr*)&server_addr, sizeof(server_addr)); // ¼³Á¤µÈ ¼ÒÄÏ Á¤º¸¸¦ ¼ÒÄÏ¿¡ ¹ÙÀÎµùÇÑ´Ù.
-    listen(server_sock.sck, SOMAXCONN); // ¼ÒÄÏÀ» ´ë±â »óÅÂ·Î ±â´Ù¸°´Ù.
+    // Internetì˜ Stream ë°©ì‹ìœ¼ë¡œ ì†Œì¼“ ìƒì„±
+   // SOCKET_INFOì˜ ì†Œì¼“ ê°ì²´ì— socket í•¨ìˆ˜ ë°˜í™˜ê°’(ë””ìŠ¤í¬ë¦½í„° ì €ì¥)
+   // ì¸í„°ë„· ì£¼ì†Œì²´ê³„, ì—°ê²°ì§€í–¥, TCP í”„ë¡œí† ì½œ ì“¸ ê²ƒ.
+    SOCKADDR_IN server_addr = {}; // ì†Œì¼“ ì£¼ì†Œ ì„¤ì • ë³€ìˆ˜
+    // ì¸í„°ë„· ì†Œì¼“ ì£¼ì†Œì²´ê³„ server_addr
+    server_addr.sin_family = AF_INET; // ì†Œì¼“ì€ Internet íƒ€ì…
+    server_addr.sin_port = htons(7777); // ì„œë²„ í¬íŠ¸ ì„¤ì •
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);  // ì„œë²„ì´ê¸° ë•Œë¬¸ì— local ì„¤ì •í•œë‹¤.
+    //Anyì¸ ê²½ìš°ëŠ” í˜¸ìŠ¤íŠ¸ë¥¼ 127.0.0.1ë¡œ ì¡ì•„ë„ ë˜ê³  localhostë¡œ ì¡ì•„ë„ ë˜ê³  ì–‘ìª½ ë‹¤ í—ˆìš©í•˜ê²Œ í•  ìˆ˜ ìˆë”°. ê·¸ê²ƒì´ INADDR_ANYì´ë‹¤.
+    //ip ì£¼ì†Œë¥¼ ì €ì¥í•  ë• server_addr.sin_addr.s_addr -- ì •í•´ì§„ ëª¨ì–‘?
+    bind(server_sock.sck, (sockaddr*)&server_addr, sizeof(server_addr)); // ì„¤ì •ëœ ì†Œì¼“ ì •ë³´ë¥¼ ì†Œì¼“ì— ë°”ì¸ë”©í•œë‹¤.
+    listen(server_sock.sck, SOMAXCONN); // ì†Œì¼“ì„ ëŒ€ê¸° ìƒíƒœë¡œ ê¸°ë‹¤ë¦°ë‹¤.
     server_sock.user = "server";
     cout << "Server On" << endl;
     //db_selectQuery_ver2();
@@ -1030,27 +1032,27 @@ void add_client() {
     SOCKADDR_IN addr = {};
     int addrsize = sizeof(addr);
     char buf[MAX_SIZE] = { };
-    ZeroMemory(&addr, addrsize); // addrÀÇ ¸Ş¸ğ¸® ¿µ¿ªÀ» 0À¸·Î ÃÊ±âÈ­
+    ZeroMemory(&addr, addrsize); // addrì˜ ë©”ëª¨ë¦¬ ì˜ì—­ì„ 0ìœ¼ë¡œ ì´ˆê¸°í™”
 
     SOCKET_INFO new_client = {};
     new_client.sck = accept(server_sock.sck, (sockaddr*)&addr, &addrsize);
     recv(new_client.sck, buf, MAX_SIZE, 0);
-    // Winsock2ÀÇ recv ÇÔ¼ö. client°¡ º¸³½ ´Ğ³×ÀÓÀ» ¹ŞÀ½.
+    // Winsock2ì˜ recv í•¨ìˆ˜. clientê°€ ë³´ë‚¸ ë‹‰ë„¤ì„ì„ ë°›ìŒ.
     //new_client.user = string(buf);
     cout << "buf = > " << buf << endl;
 
-    sck_list.push_back(new_client); // client Á¤º¸¸¦ ´ä´Â sck_list ¹è¿­¿¡ »õ·Î¿î client Ãß°¡        
+    sck_list.push_back(new_client); // client ì •ë³´ë¥¼ ë‹µëŠ” sck_list ë°°ì—´ì— ìƒˆë¡œìš´ client ì¶”ê°€        
     std::thread th(recv_msg, client_count);
 
 
     sck_list[client_count].login_status = false;
     sck_list[client_count].user_number = client_count;
     cout << "========================" << endl;
-    cout << "»õ·Î¿î À¯Àú°¡ Á¢±ÙÇß½À´Ï´Ù." << endl;
+    cout << "ìƒˆë¡œìš´ ìœ ì €ê°€ ì ‘ê·¼í–ˆìŠµë‹ˆë‹¤." << endl;
     cout << "sck_list[client_count].login_status = " << sck_list[client_count].login_status << endl;
     cout << "sck_list[client_count].user_number = " << sck_list[client_count].user_number << endl;
     cout << "========================" << endl;
-    client_count++; // client ¼ö Áõ°¡ 
+    client_count++; // client ìˆ˜ ì¦ê°€ 
     th.join();
 }
 
@@ -1063,11 +1065,10 @@ void dm_send_chatend(int server_request, const string& sender, const string& msg
             //if (sck_list[i].login_status == true) {
             cout << "dm_send_result " << result << endl;
             send(sck_list[i].sck, result.c_str(), result.length(), 0);
-            return; // Æ¯Á¤ »ç¿ëÀÚ¿¡°Ô ¸Ş½ÃÁö¸¦ º¸³»¸é ÇÔ¼ö Á¾·á
+            return;
             //}
         }
     }
-    // »ç¿ëÀÚ¸¦ Ã£Áö ¸øÇÑ °æ¿ì, ¿¡·¯ ¸Ş½ÃÁö Ãâ·Â ¶Ç´Â ´Ù¸¥ Ã³¸®¸¦ Ãß°¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.
 }
 
 void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser, const string& username, const string& userid) {
@@ -1076,20 +1077,20 @@ void dm_send_result(int server_request, const string& sender, int variable, cons
     string result = serv_request + " " + sender + " " + vari + " " + recipientUser + " " + username + " " + userid;
     for (int i = 0; i < client_count; i++) {
 
-        /*cout << std::to_string(sck_list[i].user_number) << " ¿¡°Ô º¸³»¿ä" << endl;
-        cout << sck_list[i].user_number << " °ª È®ÀÎ¿ë " << endl;
+        /*cout << std::to_string(sck_list[i].user_number) << " ì—ê²Œ ë³´ë‚´ìš”" << endl;
+        cout << sck_list[i].user_number << " ê°’ í™•ì¸ìš© " << endl;
         test_count = std::to_string(sck_list[i].user_number);*/
-        cout << test_count << " °ª È®ÀÎ¿ë " << endl;
+        cout << test_count << " ê°’ í™•ì¸ìš© " << endl;
 
         if (std::to_string(sck_list[i].user_number) == recipientUser) {
             //if (sck_list[i].login_status == true) {
             cout << "dm_send_result " << result << endl;
             send(sck_list[i].sck, result.c_str(), result.length(), 0);
-            return; // Æ¯Á¤ »ç¿ëÀÚ¿¡°Ô ¸Ş½ÃÁö¸¦ º¸³»¸é ÇÔ¼ö Á¾·á
+            return; // íŠ¹ì • ì‚¬ìš©ìì—ê²Œ ë©”ì‹œì§€ë¥¼ ë³´ë‚´ë©´ í•¨ìˆ˜ ì¢…ë£Œ
             //}
         }
     }
-    // »ç¿ëÀÚ¸¦ Ã£Áö ¸øÇÑ °æ¿ì, ¿¡·¯ ¸Ş½ÃÁö Ãâ·Â ¶Ç´Â ´Ù¸¥ Ã³¸®¸¦ Ãß°¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.
+    // ì‚¬ìš©ìë¥¼ ì°¾ì§€ ëª»í•œ ê²½ìš°, ì—ëŸ¬ ë©”ì‹œì§€ ì¶œë ¥ ë˜ëŠ” ë‹¤ë¥¸ ì²˜ë¦¬ë¥¼ ì¶”ê°€í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
 }
 
 
@@ -1102,12 +1103,12 @@ void dm_send_chat_user(int server_request, const string& sender, const std::stri
             //if (sck_list[i].login_status == true) {
             cout << "dm_send_chat_user " << msg << endl;
             send(sck_list[i].sck, msg.c_str(), msg.length(), 0);
-            return; // Æ¯Á¤ »ç¿ëÀÚ¿¡°Ô ¸Ş½ÃÁö¸¦ º¸³»¸é ÇÔ¼ö Á¾·á
+            return; // íŠ¹ì • ì‚¬ìš©ìì—ê²Œ ë©”ì‹œì§€ë¥¼ ë³´ë‚´ë©´ í•¨ìˆ˜ ì¢…ë£Œ
             //}
         }
     }
 
-    // »ç¿ëÀÚ¸¦ Ã£Áö ¸øÇÑ °æ¿ì, ¿¡·¯ ¸Ş½ÃÁö Ãâ·Â ¶Ç´Â ´Ù¸¥ Ã³¸®¸¦ Ãß°¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.
+    // ì‚¬ìš©ìë¥¼ ì°¾ì§€ ëª»í•œ ê²½ìš°, ì—ëŸ¬ ë©”ì‹œì§€ ì¶œë ¥ ë˜ëŠ” ë‹¤ë¥¸ ì²˜ë¦¬ë¥¼ ì¶”ê°€í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
 }
 
 void dm_send_resultEdit(int server_request, const string& sender, int variable, const string& recipientUser) {
@@ -1116,20 +1117,20 @@ void dm_send_resultEdit(int server_request, const string& sender, int variable, 
     string result = serv_request + " " + sender + " " + vari + " " + recipientUser;
     for (int i = 0; i < client_count; i++) {
 
-        /*cout << std::to_string(sck_list[i].user_number) << " ¿¡°Ô º¸³»¿ä" << endl;
-        cout << sck_list[i].user_number << " °ª È®ÀÎ¿ë " << endl;
+        /*cout << std::to_string(sck_list[i].user_number) << " ì—ê²Œ ë³´ë‚´ìš”" << endl;
+        cout << sck_list[i].user_number << " ê°’ í™•ì¸ìš© " << endl;
         test_count = std::to_string(sck_list[i].user_number);*/
-        cout << test_count << " °ª È®ÀÎ¿ë " << endl;
+        cout << test_count << " ê°’ í™•ì¸ìš© " << endl;
 
         if (std::to_string(sck_list[i].user_number) == recipientUser) {
             //if (sck_list[i].login_status == true) {
             cout << "dm_send_resultEdit " << result << endl;
             send(sck_list[i].sck, result.c_str(), result.length(), 0);
-            return; // Æ¯Á¤ »ç¿ëÀÚ¿¡°Ô ¸Ş½ÃÁö¸¦ º¸³»¸é ÇÔ¼ö Á¾·á
+            return; // íŠ¹ì • ì‚¬ìš©ìì—ê²Œ ë©”ì‹œì§€ë¥¼ ë³´ë‚´ë©´ í•¨ìˆ˜ ì¢…ë£Œ
             //}
         }
     }
-    // »ç¿ëÀÚ¸¦ Ã£Áö ¸øÇÑ °æ¿ì, ¿¡·¯ ¸Ş½ÃÁö Ãâ·Â ¶Ç´Â ´Ù¸¥ Ã³¸®¸¦ Ãß°¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.
+    // ì‚¬ìš©ìë¥¼ ì°¾ì§€ ëª»í•œ ê²½ìš°, ì—ëŸ¬ ë©”ì‹œì§€ ì¶œë ¥ ë˜ëŠ” ë‹¤ë¥¸ ì²˜ë¦¬ë¥¼ ì¶”ê°€í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
 }
 
 void dm_send_findResult(int server_request, const string& sender, int variable, const string& recipientUser, string findValue) {
@@ -1138,21 +1139,21 @@ void dm_send_findResult(int server_request, const string& sender, int variable, 
     string result = serv_request + " " + sender + " " + vari + " " + recipientUser + " " + findValue;
     for (int i = 0; i < client_count; i++) {
 
-        /*cout << std::to_string(sck_list[i].user_number) << " ¿¡°Ô º¸³»¿ä" << endl;
-        cout << sck_list[i].user_number << " °ª È®ÀÎ¿ë " << endl;
+        /*cout << std::to_string(sck_list[i].user_number) << " ì—ê²Œ ë³´ë‚´ìš”" << endl;
+        cout << sck_list[i].user_number << " ê°’ í™•ì¸ìš© " << endl;
         test_count = std::to_string(sck_list[i].user_number);*/
-        cout << test_count << " °ª È®ÀÎ¿ë " << endl;
+        cout << test_count << " ê°’ í™•ì¸ìš© " << endl;
 
         if (std::to_string(sck_list[i].user_number) == recipientUser) {
             //if (sck_list[i].login_status == true) {
             cout << "dm_send_findResult " << result << endl;
             send(sck_list[i].sck, result.c_str(), result.length(), 0);
-            return; // Æ¯Á¤ »ç¿ëÀÚ¿¡°Ô ¸Ş½ÃÁö¸¦ º¸³»¸é ÇÔ¼ö Á¾·á
+            return; // íŠ¹ì • ì‚¬ìš©ìì—ê²Œ ë©”ì‹œì§€ë¥¼ ë³´ë‚´ë©´ í•¨ìˆ˜ ì¢…ë£Œ
             //}
         }
     }
 
-    // »ç¿ëÀÚ¸¦ Ã£Áö ¸øÇÑ °æ¿ì, ¿¡·¯ ¸Ş½ÃÁö Ãâ·Â ¶Ç´Â ´Ù¸¥ Ã³¸®¸¦ Ãß°¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.
+    // ì‚¬ìš©ìë¥¼ ì°¾ì§€ ëª»í•œ ê²½ìš°, ì—ëŸ¬ ë©”ì‹œì§€ ì¶œë ¥ ë˜ëŠ” ë‹¤ë¥¸ ì²˜ë¦¬ë¥¼ ì¶”ê°€í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
 }
 
 void dm_send_msg(const string& sender, const char* msg, const string& recipientUser) {
@@ -1161,24 +1162,24 @@ void dm_send_msg(const string& sender, const char* msg, const string& recipientU
             //if (sck_list[i].login_status == true){
             cout << "dm_send_msg " << msg << endl;
             send(sck_list[i].sck, msg, MAX_SIZE, 0);
-            return; // Æ¯Á¤ »ç¿ëÀÚ¿¡°Ô ¸Ş½ÃÁö¸¦ º¸³»¸é ÇÔ¼ö Á¾·á
+            return; // íŠ¹ì • ì‚¬ìš©ìì—ê²Œ ë©”ì‹œì§€ë¥¼ ë³´ë‚´ë©´ í•¨ìˆ˜ ì¢…ë£Œ
             //}
         }
     }
 
-    // »ç¿ëÀÚ¸¦ Ã£Áö ¸øÇÑ °æ¿ì, ¿¡·¯ ¸Ş½ÃÁö Ãâ·Â ¶Ç´Â ´Ù¸¥ Ã³¸®¸¦ Ãß°¡ÇÒ ¼ö ÀÖ½À´Ï´Ù.
+    // ì‚¬ìš©ìë¥¼ ì°¾ì§€ ëª»í•œ ê²½ìš°, ì—ëŸ¬ ë©”ì‹œì§€ ì¶œë ¥ ë˜ëŠ” ë‹¤ë¥¸ ì²˜ë¦¬ë¥¼ ì¶”ê°€í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
 }
 
 void send_msg_2(const string& msg) {
-    for (int i = 0; i < client_count; i++) { // Á¢¼ÓÇØ ÀÖ´Â ¸ğµç client¿¡°Ô ¸Ş½ÃÁö Àü¼Û
-        cout << sck_list[i].sck << " ¿¡°Ô º¸³»¿©¿©¾î¾î¾î¾î" << endl;
+    for (int i = 0; i < client_count; i++) { // ì ‘ì†í•´ ìˆëŠ” ëª¨ë“  clientì—ê²Œ ë©”ì‹œì§€ ì „ì†¡
+        cout << sck_list[i].sck << " ì—ê²Œ ë³´ë‚´ì—¬ì—¬ì–´ì–´ì–´ì–´" << endl;
         send(sck_list[i].sck, msg.c_str(), msg.length(), 0);
     }
     return;
 }
 
 void send_msg(const char* msg) {
-    for (int i = 0; i < client_count; i++) { // Á¢¼ÓÇØ ÀÖ´Â ¸ğµç client¿¡°Ô ¸Ş½ÃÁö Àü¼Û
+    for (int i = 0; i < client_count; i++) { // ì ‘ì†í•´ ìˆëŠ” ëª¨ë“  clientì—ê²Œ ë©”ì‹œì§€ ì „ì†¡
         cout << "send_msg " << msg << endl;
         send(sck_list[i].sck, msg, MAX_SIZE, 0);
     }
@@ -1191,83 +1192,83 @@ void recv_msg(int idx) {
     while (1) {
         char buf[MAX_SIZE] = { };
         ZeroMemory(&buf, MAX_SIZE);
-        if (recv(sck_list[idx].sck, buf, MAX_SIZE, 0) > 0) { // ¿À·ù°¡ ¹ß»ıÇÏÁö ¾ÊÀ¸¸é recv´Â ¼ö½ÅµÈ ¹ÙÀÌÆ® ¼ö¸¦ ¹İÈ¯. 0º¸´Ù Å©´Ù´Â °ÍÀº ¸Ş½ÃÁö°¡ ¿Ô´Ù´Â °Í.
+        if (recv(sck_list[idx].sck, buf, MAX_SIZE, 0) > 0) { // ì˜¤ë¥˜ê°€ ë°œìƒí•˜ì§€ ì•Šìœ¼ë©´ recvëŠ” ìˆ˜ì‹ ëœ ë°”ì´íŠ¸ ìˆ˜ë¥¼ ë°˜í™˜. 0ë³´ë‹¤ í¬ë‹¤ëŠ” ê²ƒì€ ë©”ì‹œì§€ê°€ ì™”ë‹¤ëŠ” ê²ƒ.
             cout << "========================" << endl;
             //mtx.lock();
             msg = buf; //sck_list[idx].user
-            cout << sck_list[idx].user_number << " ¶û buf ´Â = " << msg << endl;
+            cout << sck_list[idx].user_number << " ë‘ buf ëŠ” = " << msg << endl;
             //send_msg(msg.c_str());
             std::istringstream iss(buf);
-            tokens.clear(); // ÀÌÀü ÅäÅ«À» Áö¿ì°í »õ·Î ½ÃÀÛ¾ÈÇÏ¸é °ª º¯ÁúµÇ¼­ Á¦´ë·Î ÀÎ½Ä ¸øÇÔ ¤Ğ¤Ğ¤Ğ¤Ğ¤Ğ
+            tokens.clear(); // ì´ì „ í† í°ì„ ì§€ìš°ê³  ìƒˆë¡œ ì‹œì‘ì•ˆí•˜ë©´ ê°’ ë³€ì§ˆë˜ì„œ ì œëŒ€ë¡œ ì¸ì‹ ëª»í•¨ ã… ã… ã… ã… ã… 
             test_count = std::to_string(sck_list[idx].user_number);
             while (iss >> token) {
                 tokens.push_back(token);
             }
-            // ÅäÅ«0 ±âÁØÀ¸·Î 1:·Î±×ÀÎ / 2:idÃ£±â / 3:pwÃ£±â / 4:È¸¿ø°¡ÀÔ / 5:´ëÈ­ / 6:±âÁ¸Ã¤ÆÃ / 7:Ä£Ãß / 8:ºñ¹ø¼öÁ¤
-            // tokens[0] == 1 ÀÌ¸é ·Î±×ÀÎ ¿äÃ»
+            // í† í°0 ê¸°ì¤€ìœ¼ë¡œ 1:ë¡œê·¸ì¸ / 2:idì°¾ê¸° / 3:pwì°¾ê¸° / 4:íšŒì›ê°€ì… / 5:ëŒ€í™” / 6:ê¸°ì¡´ì±„íŒ… / 7:ì¹œì¶” / 8:ë¹„ë²ˆìˆ˜ì •
+            // tokens[0] == 1 ì´ë©´ ë¡œê·¸ì¸ ìš”ì²­
             if (tokens[0] == "1") {
-                cout << tokens[1] << " ÅäÅ«[1]À» ¾ÆÀÌµğ°ªÀ¸·Î ¹ÙÅÁÀ¸·Î ·Î±×ÀÎ ¿äÃ»ÀÌ µé¾î¿Ô½À´Ï´Ù." << endl;
+                cout << tokens[1] << " í† í°[1]ì„ ì•„ì´ë””ê°’ìœ¼ë¡œ ë°”íƒ•ìœ¼ë¡œ ë¡œê·¸ì¸ ìš”ì²­ì´ ë“¤ì–´ì™”ìŠµë‹ˆë‹¤." << endl;
                 db_init();
                 db_login();
             };
-            // tokens[0] == 2 ÀÌ¸é ¾ÆÀÌµğ Ã£±â ¿äÃ»
+            // tokens[0] == 2 ì´ë©´ ì•„ì´ë”” ì°¾ê¸° ìš”ì²­
             if (tokens[0] == "2") {
-                cout << tokens[1] << " È¸¿øÀÌ ¾ÆÀÌµğ Ã£±â ±â´ÉÀ» ¿äÃ»Çß½À´Ï´Ù." << endl;
+                cout << tokens[1] << " íšŒì›ì´ ì•„ì´ë”” ì°¾ê¸° ê¸°ëŠ¥ì„ ìš”ì²­í–ˆìŠµë‹ˆë‹¤." << endl;
                 db_init();
                 db_findID();
             };
-            // tokens[0] == 3 ÀÌ¸é ºñ¹Ğ¹øÈ£ Ã£±â ¿äÃ»
+            // tokens[0] == 3 ì´ë©´ ë¹„ë°€ë²ˆí˜¸ ì°¾ê¸° ìš”ì²­
             if (tokens[0] == "3") {
-                cout << tokens[1] << " È¸¿øÀÌ ºñ¹Ğ¹øÈ£ Ã£±â ±â´ÉÀ» ¿äÃ»Çß½À´Ï´Ù." << endl;
+                cout << tokens[1] << " íšŒì›ì´ ë¹„ë°€ë²ˆí˜¸ ì°¾ê¸° ê¸°ëŠ¥ì„ ìš”ì²­í–ˆìŠµë‹ˆë‹¤." << endl;
                 db_init();
                 db_findPW();
             };
-            // tokens[0] == 4 ÀÌ¸é È¸¿ø°¡ÀÔ ¿äÃ»
+            // tokens[0] == 4 ì´ë©´ íšŒì›ê°€ì… ìš”ì²­
             if (tokens[0] == "4") {
-                cout << " È¸¿ø°¡ÀÔ ¿äÃ»ÀÌ µé¾î¿Ô½À´Ï´Ù." << endl;
+                cout << " íšŒì›ê°€ì… ìš”ì²­ì´ ë“¤ì–´ì™”ìŠµë‹ˆë‹¤." << endl;
                 db_init();
                 db_join();
             };
             if (tokens[0] == "41") {
-                cout << " ¾ÆÀÌµğ È®ÀÎ ¿äÃ»ÀÌ µé¾î¿Ô½À´Ï´Ù." << endl;
+                cout << " ì•„ì´ë”” í™•ì¸ ìš”ì²­ì´ ë“¤ì–´ì™”ìŠµë‹ˆë‹¤." << endl;
                 db_init();
                 db_join_check();                
             };
 
-            // tokens[0] == 5 ÀÌ¸é ´ëÈ­±â´É ¿äÃ»
+            // tokens[0] == 5 ì´ë©´ ëŒ€í™”ê¸°ëŠ¥ ìš”ì²­
             if (tokens[0] == "5") {
                 Sleep(300);
-                cout << tokens[1] << " È¸¿øÀÌ Ä£±¸ ¸ñ·ÏÀ» ¿äÃ»Çß½À´Ï´Ù." << endl;
+                cout << tokens[1] << " íšŒì›ì´ ì¹œêµ¬ ëª©ë¡ì„ ìš”ì²­í–ˆìŠµë‹ˆë‹¤." << endl;
                 db_init();
                 db_selectQuery_ver2();
             };
-            // tokens[0] == 51 ÀÌ¸é º¸³½ ¸Ş½ÃÁö ÀúÀå ¿äÃ»
+            // tokens[0] == 51 ì´ë©´ ë³´ë‚¸ ë©”ì‹œì§€ ì €ì¥ ìš”ì²­
             if (tokens[0] == "51") {
                 Sleep(300);
-                cout << tokens[1] << " È¸¿øÀÌ ¸Ş¼¼Áö ÀúÀåÀ» ¿äÃ»Çß½À´Ï´Ù." << endl;
+                cout << tokens[1] << " íšŒì›ì´ ë©”ì„¸ì§€ ì €ì¥ì„ ìš”ì²­í–ˆìŠµë‹ˆë‹¤." << endl;
                 db_messageSend();
                 //Sleep(2000);
                 //db_selectQuery_ver2();
             };
 
-            //tokens[0] == 52 ÀÌ¸é Ã¤ÆÃ Á¾·á ¿äÃ»
+            //tokens[0] == 52 ì´ë©´ ì±„íŒ… ì¢…ë£Œ ìš”ì²­
             //void dm_send_chatend(int server_request, const string& sender, const string& msg, const string& recipientUser)
             if (tokens[0] == "52") {
                 Sleep(300);
-                cout << tokens[1] << " È¸¿øÀÌ Ã¤ÆÃ Á¾·á¸¦ ¿äÃ»Çß½À´Ï´Ù." << endl;
+                cout << tokens[1] << " íšŒì›ì´ ì±„íŒ… ì¢…ë£Œë¥¼ ìš”ì²­í–ˆìŠµë‹ˆë‹¤." << endl;
                 dm_send_chatend(501, "server", "chat_end", "0");
                 dm_send_chatend(501, "server", "chat_end", "1");
             };
+            // tokens[0] == 6 ì´ë©´ ê¸°ì¡´ ì±„íŒ…ë°© ìš”ì²­
 
-            // tokens[0] == 6 ÀÌ¸é ±âÁ¸ Ã¤ÆÃ¹æ ¿äÃ»
             if (tokens[0] == "6") {
-                cout << tokens[1] << " È¸¿øÀÌ À¯ÀúÀÇ ±âº» Ã¤ÆÃ¹æÀ» ¿äÃ»Çß½À´Ï´Ù." << endl;
+                cout << tokens[1] << " íšŒì›ì´ ìœ ì €ì˜ ê¸°ë³¸ ì±„íŒ…ë°©ì„ ìš”ì²­í–ˆìŠµë‹ˆë‹¤." << endl;
                 db_init();
                 db_chat_list();
             };
 
             if (tokens[0] == "61") {
-                cout << tokens[1] << " È¸¿øÀÌ À¯ÀúÀÇ Ã¤ÆÃ¹æÀ» ¿äÃ»Çß½À´Ï´Ù." << endl;
+                cout << tokens[1] << " íšŒì›ì´ ìœ ì €ì˜ ì±„íŒ…ë°©ì„ ìš”ì²­í–ˆìŠµë‹ˆë‹¤." << endl;
                 db_init();
                 db_join_check_ver2();
                 if (!user_check) {
@@ -1275,44 +1276,44 @@ void recv_msg(int idx) {
                 }
             };
 
-            // tokens[0] == 7 ÀÌ¸é Ä£±¸ Ãß°¡ ±â´É ¿äÃ»
+            // tokens[0] == 7 ì´ë©´ ì¹œêµ¬ ì¶”ê°€ ê¸°ëŠ¥ ìš”ì²­
             if (tokens[0] == "7") {
-                cout << tokens[1] << " È¸¿øÀÌ Ä£±¸ Ãß°¡ ±â´ÉÀ» ¿äÃ»Çß½À´Ï´Ù." << endl;
+                cout << tokens[1] << " íšŒì›ì´ ì¹œêµ¬ ì¶”ê°€ ê¸°ëŠ¥ì„ ìš”ì²­í–ˆìŠµë‹ˆë‹¤." << endl;
                 db_init();
                 db_friend_register();
             };
 
             if (tokens[0] == "71") {
-                cout << tokens[1] << " È¸¿øÀÌ Ä£±¸ ¸ñ·Ï È®ÀÎ ±â´ÉÀ» ¿äÃ»Çß½À´Ï´Ù." << endl;
+                cout << tokens[1] << " íšŒì›ì´ ì¹œêµ¬ ëª©ë¡ í™•ì¸ ê¸°ëŠ¥ì„ ìš”ì²­í–ˆìŠµë‹ˆë‹¤." << endl;
                 db_init();
                 db_friend_list();
             };
-            // tokens[0] == 8 ÀÌ¸é ºñ¹Ğ¹øÈ£ ¼öÁ¤ ¿äÃ»
+            // tokens[0] == 8 ì´ë©´ ë¹„ë°€ë²ˆí˜¸ ìˆ˜ì • ìš”ì²­
             if (tokens[0] == "8") {
-                if (tokens[3] == "N") { //tokens[0] ÀÌ 8 ÀÌ¸é¼­ tokens[3] ÀÇ °ªÀº Y¿Í NÀ¸·Î ºñ¹Ğ¹øÈ£ È®ÀÎ °á°ú¸¦ °áÁ¤ÇÕ´Ï´Ù.
-                    cout << tokens[1] << " [ºñ¹Ğ¹øÈ£ È®ÀÎ ¿äÃ»] ÅäÅ«[1]À» ºñ¹Ğ¹øÈ£°ªÀ¸·Î ¹ÙÅÁÀ¸·Î ºñ¹Ğ¹øÈ£ º¯°æ ¿äÃ»ÀÌ µé¾î¿Ô½À´Ï´Ù." << endl;
+                if (tokens[3] == "N") { //tokens[0] ì´ 8 ì´ë©´ì„œ tokens[3] ì˜ ê°’ì€ Yì™€ Nìœ¼ë¡œ ë¹„ë°€ë²ˆí˜¸ í™•ì¸ ê²°ê³¼ë¥¼ ê²°ì •í•©ë‹ˆë‹¤.
+                    cout << tokens[1] << " [ë¹„ë°€ë²ˆí˜¸ í™•ì¸ ìš”ì²­] í† í°[1]ì„ ë¹„ë°€ë²ˆí˜¸ê°’ìœ¼ë¡œ ë°”íƒ•ìœ¼ë¡œ ë¹„ë°€ë²ˆí˜¸ ë³€ê²½ ìš”ì²­ì´ ë“¤ì–´ì™”ìŠµë‹ˆë‹¤." << endl;
                     test_count = std::to_string(sck_list[idx].user_number);
                     int result = 0;
                     db_init();
-                    db_UserEdit(); // µ¥ÀÌÅÍº£ÀÌ½º Äõ¸® ½ÇÇà
-                    tokens.clear(); // ÀÌÀü ÅäÅ«À» Áö¿ì°í »õ·Î ½ÃÀÛ¾ÈÇÏ¸é °ª º¯ÁúµÇ¼­ Á¦´ë·Î ÀÎ½Ä ¸øÇÔ ¤Ğ¤Ğ¤Ğ¤Ğ¤Ğ
+                    db_UserEdit(); // ë°ì´í„°ë² ì´ìŠ¤ ì¿¼ë¦¬ ì‹¤í–‰
+                    tokens.clear(); // ì´ì „ í† í°ì„ ì§€ìš°ê³  ìƒˆë¡œ ì‹œì‘ì•ˆí•˜ë©´ ê°’ ë³€ì§ˆë˜ì„œ ì œëŒ€ë¡œ ì¸ì‹ ëª»í•¨ ã… ã… ã… ã… ã… 
                 }
                 if (tokens[3] == "Y") {
-                    cout << tokens[1] << " [ºñ¹Ğ¹øÈ£ È®ÀÎ ¿Ï·á] ÅäÅ«[1]À» ºñ¹Ğ¹øÈ£°ªÀ¸·Î ¹ÙÅÁÀ¸·Î ºñ¹Ğ¹øÈ£ º¯°æ ¿äÃ»ÀÌ µé¾î¿Ô½À´Ï´Ù." << endl;
+                    cout << tokens[1] << " [ë¹„ë°€ë²ˆí˜¸ í™•ì¸ ì™„ë£Œ] í† í°[1]ì„ ë¹„ë°€ë²ˆí˜¸ê°’ìœ¼ë¡œ ë°”íƒ•ìœ¼ë¡œ ë¹„ë°€ë²ˆí˜¸ ë³€ê²½ ìš”ì²­ì´ ë“¤ì–´ì™”ìŠµë‹ˆë‹¤." << endl;
                     test_count = std::to_string(sck_list[idx].user_number);
                     int result = 0;
                     db_init();
                     db_UserEdit_update();
-                    tokens.clear(); // ÀÌÀü ÅäÅ«À» Áö¿ì°í »õ·Î ½ÃÀÛ¾ÈÇÏ¸é °ª º¯ÁúµÇ¼­ Á¦´ë·Î ÀÎ½Ä ¸øÇÔ ¤Ğ¤Ğ¤Ğ¤Ğ¤Ğ
+                    tokens.clear(); // ì´ì „ í† í°ì„ ì§€ìš°ê³  ìƒˆë¡œ ì‹œì‘ì•ˆí•˜ë©´ ê°’ ë³€ì§ˆë˜ì„œ ì œëŒ€ë¡œ ì¸ì‹ ëª»í•¨ ã… ã… ã… ã… ã… 
                 }
             }
             //mtx.unlock();
         }
-        else { //±×·¸Áö ¾ÊÀ» °æ¿ì ÅğÀå¿¡ ´ëÇÑ ½ÅÈ£·Î »ı°¢ÇÏ¿© ÅğÀå ¸Ş½ÃÁö Àü¼Û
-            msg = "[°øÁö] " + sck_list[idx].user + " ´ÔÀÌ ÅğÀåÇß½À´Ï´Ù.";
+        else { //ê·¸ë ‡ì§€ ì•Šì„ ê²½ìš° í‡´ì¥ì— ëŒ€í•œ ì‹ í˜¸ë¡œ ìƒê°í•˜ì—¬ í‡´ì¥ ë©”ì‹œì§€ ì „ì†¡
+            msg = "[ê³µì§€] " + sck_list[idx].user + " ë‹˜ì´ í‡´ì¥í–ˆìŠµë‹ˆë‹¤.";
             cout << msg << endl;
             send_msg(msg.c_str());
-            del_client(idx); // Å¬¶óÀÌ¾ğÆ® »èÁ¦
+            del_client(idx); // í´ë¼ì´ì–¸íŠ¸ ì‚­ì œ
             return;
         }
     }
@@ -1320,6 +1321,6 @@ void recv_msg(int idx) {
 
 void del_client(int idx) {
     closesocket(sck_list[idx].sck);
-    //sck_list.erase(sck_list.begin() + idx); // ¹è¿­¿¡¼­ Å¬¶óÀÌ¾ğÆ®¸¦ »èÁ¦ÇÏ°Ô µÉ °æ¿ì index°¡ ´Ş¶óÁö¸é¼­ ·±Å¸ÀÓ ¿À·ù ¹ß»ı....¤¾
+    //sck_list.erase(sck_list.begin() + idx); // ë°°ì—´ì—ì„œ í´ë¼ì´ì–¸íŠ¸ë¥¼ ì‚­ì œí•˜ê²Œ ë  ê²½ìš° indexê°€ ë‹¬ë¼ì§€ë©´ì„œ ëŸ°íƒ€ì„ ì˜¤ë¥˜ ë°œìƒ....ã…
     client_count--;
 }
