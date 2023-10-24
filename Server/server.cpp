@@ -102,6 +102,7 @@ void db_create_chatroom(string user_id_1, string user_id_2);
 void dm_send_db(int server_request, const string& sender, const std::string& recipientUser, const std::string& user_2, const std::vector<std::vector<std::string>>& result);
 void dm_send_dbup(int server_request, const string& sender, const std::string& recipientUser, const std::string& msg, const std::string& msg2);
 void dm_send_chat_user(int server_request, const string& sender, const std::string& recipientUser, const std::string& msg2, const std::string& roomnum);
+void dm_send_chatend(int server_request, const string& sender, const string& msg, const string& recipientUser);
 
 void db_init() {
     try {
@@ -1055,6 +1056,21 @@ void add_client() {
     th.join();
 }
 
+
+void dm_send_chatend(int server_request, const string& sender, const string& msg, const string& recipientUser) {
+    string serv_request = std::to_string(server_request);
+    string result = serv_request + " " + sender + " " + msg + " " + recipientUser;
+    for (int i = 0; i < client_count; i++) {
+        if (std::to_string(sck_list[i].user_number) == recipientUser) {
+            //if (sck_list[i].login_status == true) {
+            cout << "dm_send_result " << result << endl;
+            send(sck_list[i].sck, result.c_str(), result.length(), 0);
+            return;
+            //}
+        }
+    }
+}
+
 void dm_send_result(int server_request, const string& sender, int variable, const string& recipientUser, const string& username, const string& userid) {
     string vari = std::to_string(variable);
     string serv_request = std::to_string(server_request);
@@ -1235,7 +1251,16 @@ void recv_msg(int idx) {
                 //db_selectQuery_ver2();
             };
 
+            //tokens[0] == 52 이면 채팅 종료 요청
+            //void dm_send_chatend(int server_request, const string& sender, const string& msg, const string& recipientUser)
+            if (tokens[0] == "52") {
+                Sleep(300);
+                cout << tokens[1] << " 회원이 채팅 종료를 요청했습니다." << endl;
+                dm_send_chatend(501, "server", "chat_end", "0");
+                dm_send_chatend(501, "server", "chat_end", "1");
+            };
             // tokens[0] == 6 이면 기존 채팅방 요청
+
             if (tokens[0] == "6") {
                 cout << tokens[1] << " 회원이 유저의 기본 채팅방을 요청했습니다." << endl;
                 db_init();

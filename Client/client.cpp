@@ -52,6 +52,7 @@ bool friend_list_flag = false;
 bool chat_restart_flag = false;
 bool chat_list_flag = false;
 bool conversation_flag = false;
+bool con_flag = false;
 bool user_check_flag = false;
 void socket_init(); // 소켓정보 저장
 void findID(); // 아이디 찾기
@@ -729,25 +730,25 @@ int chatlist_recv() {
                 for (size_t i = 0; i < DB_contents.size(); ++i) {
                     std::cout << "DB_contents[" << i << "]: " << DB_contents[i] << std::endl;
                 }        
-                PlaySound(TEXT("katalk.wav"), 0, SND_FILENAME | SND_ASYNC); //일반 재생
+                //PlaySound(TEXT("katalk.wav"), 0, SND_FILENAME | SND_ASYNC); //일반 재생
+                cout << " ============================================ " << endl;
+                cout << " 보낼 메세지를 입력하세요." << endl;
             }        
-            cout << " ============================================ " << endl;
-            cout << " 보낼 메세지를 입력하세요." << endl;
+            else if (tokens[0] == "501") {
+                break;
+            }
             
-            
-           
+            //break;
         }
     }
 }
 
 void chat_list() {
     system("cls");  
-    int code = WSAStartup(MAKEWORD(2, 2), &wsa);
 
-
-    if (!code) {
+    while (!chat_list_flag) {
         system("cls");
-        //cout << "친구 목록을 요청합니다." << endl;
+        //cout << "친구 목록을 요청합니다." << endl;        
         string User_request = "5"; //채팅하기 초반부
 
         while (1) {
@@ -768,16 +769,20 @@ void chat_list() {
                 getline(cin, user_msg); // 사용자 입력을 한 줄로 읽기
 
                 if (user_msg == "exit") {
-                    dblist_flag = true;
+                    chat_list_flag = true;
+                    string User_request = "52";
+                    string msg = User_request + " " + login_User_id;
+                    send(client_sock, msg.c_str(), msg.length(), 0);
                     break;
                 }
                 string msg = User_request + " " + login_User_id + " " + user_msg + " " + chatting_roomnum;
                 //수정 필요
-                send(client_sock, msg.c_str(), msg.length(), 0);                
-            }
-            
+                send(client_sock, msg.c_str(), msg.length(), 0);    
+            }            
         }
         cout << " =====================4======================= " << endl;
+        th2.join();
+        break;
     }
 }
 
@@ -917,7 +922,7 @@ void conversation() { //6 친구 목록 가져오기
         }
 
         if (conversation_flag == true && user_check_flag == true) { //리스트 불러오면 true + 상대 아이디 있으면 true
-            chat_list(); 
+            break;
 
         }
 
@@ -930,7 +935,7 @@ void conversation() { //6 친구 목록 가져오기
 
 void conversation_recv() {
 
-    while (!code) {
+    while (!con_flag) {
         //system("cls");
         char buf[MAX_SIZE] = { };
         ZeroMemory(&buf, MAX_SIZE);
@@ -985,7 +990,7 @@ void conversation_recv() {
                     else if (result == "4") {
                         cout << " # 981 " << endl;
                         cout << "※ 아이디 검색 성공! 대화방을 불러옵니다." << endl;
-                        break;
+                        //break;
                     }
 
                 }
@@ -994,6 +999,7 @@ void conversation_recv() {
                     chatting_friend = tokens[3];
                     cout << "클라 # 994 의 " << chatting_friend << endl;
                     chatting_roomnum = tokens[4];
+                    user_check_flag = true; // 이 부분 필요
                     break;
                 }
                 else if (tokens[0] == "4") {
@@ -1064,12 +1070,15 @@ int main()
             system("cls"); // 콘솔창을 클린 하란 의미
         }
         //로그인 성공했을 때만 트루로 바꿔줬으므로, 로그인 됐을 때만 아이디가 출력됨.
-        if (login_flag == true) {
+        else if (login_flag == true) {
             edit_check = "N";
             User_Edit_falg = false;
             dblist_flag = false;
             register_flag = false;
             friend_list_flag = false;
+            chat_list_flag = false;
+            conversation_flag = false;
+            user_check_flag = false;
             MainMenu(); // 메인 메뉴 그리기 생성자 호출
 
             cout << "로그인 성공! " << login_User_nick << " 님 환영합니다." << endl;
